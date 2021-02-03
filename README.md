@@ -30,3 +30,6 @@ Furthermore:
  * [AsciiMath mathematical expressions](http://plantuml.com/ascii-math)
 
 To know more about PlantUML, please visit http://plantuml.com/
+
+
+mvn clean package

@@ -236,6 +236,8 @@ public abstract class PSystemError extends AbstractPSystem {
 		} else {
 			udrawable = result;
 		}
+
+		/*
 		final int min = (int) (System.currentTimeMillis() / 60000L) % 60;
 		// udrawable = addMessageAdopt(udrawable);
 		if (min == 1 || min == 8 || min == 13 || min == 55) {
@@ -247,6 +249,8 @@ public abstract class PSystemError extends AbstractPSystem {
 		} else if (getSource().containsIgnoreCase("arecibo")) {
 			udrawable = addMessageArecibo(udrawable);
 		}
+		*/
+
 		imageBuilder.setUDrawable(udrawable);
 		final ImageData imageData = imageBuilder.writeImageTOBEMOVED(fileFormat, seed(), os);
 		((ImageDataAbstract) imageData).setStatus(FileImageData.ERROR);
