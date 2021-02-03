@@ -46,12 +46,12 @@ import net.sourceforge.plantuml.Direction;
 import net.sourceforge.plantuml.FontParam;
 import net.sourceforge.plantuml.ISkinParam;
 import net.sourceforge.plantuml.LineParam;
-import net.sourceforge.plantuml.SkinParam;
 import net.sourceforge.plantuml.SkinParamBackcolored;
 import net.sourceforge.plantuml.SkinParamUtils;
 import net.sourceforge.plantuml.Url;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.creole.Stencil;
-import net.sourceforge.plantuml.cucadiagram.BodyEnhanced2;
+import net.sourceforge.plantuml.cucadiagram.BodyFactory;
 import net.sourceforge.plantuml.cucadiagram.Display;
 import net.sourceforge.plantuml.cucadiagram.IEntity;
 import net.sourceforge.plantuml.cucadiagram.ILeaf;
@@ -72,7 +72,7 @@ import net.sourceforge.plantuml.style.Style;
 import net.sourceforge.plantuml.style.StyleSignature;
 import net.sourceforge.plantuml.svek.AbstractEntityImage;
 import net.sourceforge.plantuml.svek.Line;
-import net.sourceforge.plantuml.svek.Node;
+import net.sourceforge.plantuml.svek.SvekNode;
 import net.sourceforge.plantuml.svek.ShapeType;
 import net.sourceforge.plantuml.ugraphic.UGraphic;
 import net.sourceforge.plantuml.ugraphic.UGraphicStencil;
@@ -103,7 +103,7 @@ public class EntityImageNote extends AbstractEntityImage implements Stencil {
 
 		final Rose rose = new Rose();
 
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			final Style style = getDefaultStyleDefinition().getMergedStyle(skinParam.getCurrentStyleBuilder());
 			if (entity.getColors(getSkinParam()).getColor(ColorType.BACK) == null) {
 				this.noteBackgroundColor = style.value(PName.BackGroundColor).asColor(skinParam.getIHtmlColorSet());
@@ -125,8 +125,9 @@ public class EntityImageNote extends AbstractEntityImage implements Stencil {
 		if (strings.size() == 1 && strings.get(0).length() == 0) {
 			textBlock = new TextBlockEmpty();
 		} else {
-			textBlock = new BodyEnhanced2(strings, FontParam.NOTE, getSkinParam(), HorizontalAlignment.LEFT,
-					new FontConfiguration(getSkinParam(), FontParam.NOTE, null), getSkinParam().wrapWidth());
+			final FontConfiguration fc = new FontConfiguration(getSkinParam(), FontParam.NOTE, null);
+			textBlock = BodyFactory.create3(strings, FontParam.NOTE, getSkinParam(), HorizontalAlignment.LEFT, fc,
+					getSkinParam().wrapWidth());
 		}
 	}
 
@@ -294,10 +295,10 @@ public class EntityImageNote extends AbstractEntityImage implements Stencil {
 	}
 
 	private Line opaleLine;
-	private Node node;
-	private Node other;
+	private SvekNode node;
+	private SvekNode other;
 
-	public void setOpaleLine(Line line, Node node, Node other) {
+	public void setOpaleLine(Line line, SvekNode node, SvekNode other) {
 		if (other == null) {
 			throw new IllegalArgumentException();
 		}

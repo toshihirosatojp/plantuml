@@ -39,10 +39,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sourceforge.plantuml.command.Command;
-import net.sourceforge.plantuml.command.UmlDiagramFactory;
+import net.sourceforge.plantuml.command.PSystemCommandFactory;
 import net.sourceforge.plantuml.core.DiagramType;
 
-public class WireDiagramFactory extends UmlDiagramFactory {
+public class WireDiagramFactory extends PSystemCommandFactory {
 
 	public WireDiagramFactory() {
 		super(DiagramType.WIRE);
@@ -54,12 +54,12 @@ public class WireDiagramFactory extends UmlDiagramFactory {
 		final List<Command> cmds = new ArrayList<Command>();
 		addCommonCommands1(cmds);
 		cmds.add(new CommandComponent());
-		cmds.add(new CommandContainer());
-		cmds.add(new CommandContainerEnd());
-		cmds.add(new CommandPin());
-		cmds.add(new CommandPinSpace());
-		cmds.add(new CommandVspace());
+		cmds.add(new CommandSpot());
+		cmds.add(new CommandGoto());
+		cmds.add(new CommandMove());
+		cmds.add(new CommandWLink());
 		cmds.add(new CommandNewColumn());
+		cmds.add(new CommandPrint());
 
 		return cmds;
 	}

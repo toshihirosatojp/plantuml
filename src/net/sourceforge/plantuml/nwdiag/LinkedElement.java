@@ -35,6 +35,11 @@
 package net.sourceforge.plantuml.nwdiag;
 
 import java.awt.geom.Dimension2D;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import net.sourceforge.plantuml.ColorParam;
 import net.sourceforge.plantuml.Dimension2DDouble;
@@ -42,25 +47,28 @@ import net.sourceforge.plantuml.graphic.StringBounder;
 import net.sourceforge.plantuml.graphic.TextBlock;
 import net.sourceforge.plantuml.ugraphic.MinMax;
 import net.sourceforge.plantuml.ugraphic.UGraphic;
-import net.sourceforge.plantuml.ugraphic.ULine;
 import net.sourceforge.plantuml.ugraphic.UTranslate;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
 import net.sourceforge.plantuml.utils.MathUtils;
 
 public class LinkedElement {
 
-	private final TextBlock ad1;
 	private final TextBlock box;
-	private final TextBlock ad2;
 	private final Network network;
-	private final DiagElement element;
+	private final Square square;
+	private final Map<Network, TextBlock> conns;
+	private final List<Network> networks;
 
-	public LinkedElement(TextBlock ad1, TextBlock box, TextBlock ad2, Network network, DiagElement element) {
-		this.ad1 = ad1;
+	public LinkedElement(Square square, TextBlock box, Map<Network, TextBlock> conns, List<Network> networks) {
+		this.networks = networks;
 		this.box = box;
-		this.ad2 = ad2;
-		this.network = network;
-		this.element = element;
+		this.network = square.getMainNetwork();
+		this.square = square;
+		this.conns = conns;
+	}
+
+	public boolean isLinkedTo(Network some) {
+		return conns.containsKey(some);
 	}
 
 	private final double marginAd = 10;
@@ -81,42 +89,93 @@ public class LinkedElement {
 	public void drawMe(UGraphic ug, double width, double height) {
 		final double xMiddle = width / 2;
 		final double yMiddle = height / 2;
+		drawCenter(ug, box, xMiddle, yMiddle);
+	}
+
+	public void drawLinks(UGraphic ug, double xstart, double width, double height) {
+
+		ug = ug.apply(UTranslate.dx(xstart));
+
+		final double ynet1 = network.getY();
+		final double yMiddle = height / 2;
 		final StringBounder stringBounder = ug.getStringBounder();
 		final Dimension2D dimBox = box.calculateDimension(stringBounder);
 
-		final double y1 = yMiddle - dimBox.getHeight() / 2;
-		final double y2 = yMiddle + dimBox.getHeight() / 2;
-
-		drawCenter(ug, box, xMiddle, yMiddle);
+		final double alpha = yMiddle - dimBox.getHeight() / 2;
 
 		final HColor color = ColorParam.activityBorder.getDefaultValue();
 		ug = ug.apply(color);
-		drawHLine(ug, xMiddle, GridTextBlockDecorated.NETWORK_THIN, y1);
-		if (ad2 != null) {
-			drawHLine(ug, xMiddle, y2, height);
+
+		final double xMiddle = width / 2;
+
+		final TreeSet<Double> skip = new TreeSet<Double>();
+
+		for (Network n : networks) {
+			if (xstart + xMiddle > n.getXmin() && xstart + xMiddle < n.getXmax())
+				skip.add(n.getY());
 		}
 
-		drawCenter(ug, ad1, xMiddle, (GridTextBlockDecorated.NETWORK_THIN + y1) / 2);
-		if (ad2 != null) {
-			drawCenter(ug, ad2, xMiddle, (y2 + height - GridTextBlockDecorated.NETWORK_THIN) / 2);
+		if (square.hasItsOwnColumn()) {
+			if (square.getMainNetwork().isVisible()) {
+				new VerticalLine(ynet1 + GridTextBlockDecorated.NETWORK_THIN, ynet1 + alpha, skip)
+						.drawU(ug.apply(UTranslate.dx(xMiddle)));
+			} else {
+				new VerticalLine(ynet1, ynet1 + alpha, Collections.<Double>emptySet())
+						.drawU(ug.apply(UTranslate.dx(xMiddle)));
+			}
 		}
+		drawCenter(ug, link1(), xMiddle, ynet1 + alpha / 2);
+
+		final double seven = 7.0;
+		double x = xMiddle - (conns.size() - 2) * seven / 2;
+		boolean first = true;
+		for (Entry<Network, TextBlock> ent : conns.entrySet()) {
+			if (ent.getKey() == network) {
+				continue;
+			}
+			final double ynet2 = ent.getKey().getY();
+			new VerticalLine(ynet1 + yMiddle + dimBox.getHeight() / 2, ynet2, skip).drawU(ug.apply(UTranslate.dx(x)));
+			final double xtext;
+			if (first && conns.size() > 2) {
+				xtext = x - ent.getValue().calculateDimension(stringBounder).getWidth() / 2;
+			} else {
+				xtext = x;
+			}
+			drawCenter(ug, ent.getValue(), xtext, ynet2 - alpha / 2);
+			x += seven;
+			first = false;
+
+		}
+
+	}
+
+	private TextBlock link1() {
+		return conns.get(network);
+	}
+
+	private TextBlock link2() {
+		final int i = networks.indexOf(network);
+		if (i == networks.size() - 1) {
+			return null;
+		}
+		return conns.get(networks.get(i + 1));
 	}
 
 	private void drawCenter(UGraphic ug, TextBlock block, double x, double y) {
+		if (block == null) {
+			return;
+		}
 		final Dimension2D dim = block.calculateDimension(ug.getStringBounder());
 		block.drawU(ug.apply(new UTranslate(x - dim.getWidth() / 2, y - dim.getHeight() / 2)));
 
 	}
 
-	private void drawHLine(UGraphic ug, double x, double y1, double y2) {
-		final ULine line = ULine.vline(y2 - y1);
-		ug.apply(new UTranslate(x, y1)).draw(line);
-	}
-
 	public Dimension2D naturalDimension(StringBounder stringBounder) {
-		final Dimension2D dim1 = ad1.calculateDimension(stringBounder);
+		final Dimension2D dim1 = link1() == null ? new Dimension2DDouble(0, 0)
+				: link1().calculateDimension(stringBounder);
 		final Dimension2D dimBox = box.calculateDimension(stringBounder);
-		final Dimension2D dim2 = ad2 == null ? new Dimension2DDouble(0, 0) : ad2.calculateDimension(stringBounder);
+		final Dimension2D dim2 = link2() == null ? new Dimension2DDouble(0, 0)
+				: link2().calculateDimension(stringBounder);
 		final double width = MathUtils.max(dim1.getWidth() + 2 * marginAd, dimBox.getWidth() + 2 * marginBox,
 				dim2.getWidth() + 2 * marginAd);
 		final double height = dim1.getHeight() + 2 * marginAd + dimBox.getHeight() + 2 * marginBox + dim2.getHeight()
@@ -128,8 +187,8 @@ public class LinkedElement {
 		return network;
 	}
 
-	public final DiagElement getElement() {
-		return element;
+	public final Square getElement() {
+		return square;
 	}
 
 }

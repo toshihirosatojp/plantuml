@@ -48,7 +48,7 @@ import net.sourceforge.plantuml.Dimension2DDouble;
 import net.sourceforge.plantuml.Direction;
 import net.sourceforge.plantuml.FontParam;
 import net.sourceforge.plantuml.ISkinParam;
-import net.sourceforge.plantuml.SkinParam;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.activitydiagram3.PositionedNote;
 import net.sourceforge.plantuml.activitydiagram3.ftile.AbstractFtile;
 import net.sourceforge.plantuml.activitydiagram3.ftile.Ftile;
@@ -143,7 +143,7 @@ public class FtileWithNoteOpale extends AbstractFtile implements Stencil, Stylea
 		final FontConfiguration fc;
 
 		final double shadowing;
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			final Style style = getDefaultStyleDefinition().getMergedStyle(skinParam.getCurrentStyleBuilder())
 					.eventuallyOverride(note.getColors());
 			noteBackgroundColor = style.value(PName.BackGroundColor).asColor(getIHtmlColorSet());
@@ -218,7 +218,7 @@ public class FtileWithNoteOpale extends AbstractFtile implements Stencil, Stylea
 			final Point2D pp2 = new Point2D.Double(-suppSpace, dimNote.getHeight() / 2);
 			opale.setOpale(strategy, pp1, pp2);
 		}
-		if (swimlaneNote == null || intoSw == swimlaneNote) {
+		if (ug instanceof UGraphicInterceptorOneSwimlane == false || swimlaneNote == null || intoSw == swimlaneNote) {
 			opale.drawU(ug.apply(getTranslateForOpale(ug)));
 		}
 		ug.apply(getTranslate(stringBounder)).draw(tile);

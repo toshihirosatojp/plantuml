@@ -46,17 +46,19 @@ import java.util.Arrays;
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.FileFormatOption;
 import net.sourceforge.plantuml.Log;
-import net.sourceforge.plantuml.SvgString;
 import net.sourceforge.plantuml.api.ImageDataSimple;
 import net.sourceforge.plantuml.core.ImageData;
 import net.sourceforge.plantuml.eps.EpsGraphics;
 import net.sourceforge.plantuml.graphic.GraphicStrings;
 import net.sourceforge.plantuml.graphic.TextBlock;
 import net.sourceforge.plantuml.security.ImageIO;
+import net.sourceforge.plantuml.style.ClockwiseTopRightBottomLeft;
 import net.sourceforge.plantuml.ugraphic.AffineTransformType;
+import net.sourceforge.plantuml.ugraphic.ImageBuilder;
+import net.sourceforge.plantuml.ugraphic.ImageParameter;
 import net.sourceforge.plantuml.ugraphic.MutableImage;
 import net.sourceforge.plantuml.ugraphic.PixelImage;
-import net.sourceforge.plantuml.ugraphic.ImageBuilder;
+import net.sourceforge.plantuml.ugraphic.UImageSvg;
 import net.sourceforge.plantuml.ugraphic.color.ColorMapperIdentity;
 
 public class ScientificEquationSafe {
@@ -91,9 +93,9 @@ public class ScientificEquationSafe {
 
 	private ImageData dimSvg;
 
-	public SvgString getSvg(double scale, Color foregroundColor, Color backgroundColor) {
+	public UImageSvg getSvg(double scale, Color foregroundColor, Color backgroundColor) {
 		try {
-			final SvgString svg = equation.getSvg(scale, foregroundColor, backgroundColor);
+			final UImageSvg svg = equation.getSvg(scale, foregroundColor, backgroundColor);
 			dimSvg = new ImageDataSimple(equation.getDimension());
 			return svg;
 		} catch (Exception e) {
@@ -105,7 +107,7 @@ public class ScientificEquationSafe {
 			} catch (IOException e1) {
 				return null;
 			}
-			return new SvgString(new String(baos.toByteArray()), scale);
+			return new UImageSvg(new String(baos.toByteArray()), scale);
 		}
 	}
 
@@ -136,8 +138,9 @@ public class ScientificEquationSafe {
 
 	private ImageBuilder getRollback() {
 		final TextBlock block = GraphicStrings.createBlackOnWhiteMonospaced(Arrays.asList(formula));
-		final ImageBuilder imageBuilder = ImageBuilder.buildA(new ColorMapperIdentity(), false, null, null, null, 1.0,
-				null);
+		final ImageParameter imageParameter = new ImageParameter(new ColorMapperIdentity(), false, null, 1.0, null,
+				null, ClockwiseTopRightBottomLeft.none(), null);
+		final ImageBuilder imageBuilder = ImageBuilder.build(imageParameter);
 		imageBuilder.setUDrawable(block);
 		return imageBuilder;
 	}

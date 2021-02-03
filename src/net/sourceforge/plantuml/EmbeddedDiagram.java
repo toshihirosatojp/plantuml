@@ -60,6 +60,38 @@ import net.sourceforge.plantuml.ugraphic.UShape;
 
 public class EmbeddedDiagram implements CharSequence {
 
+	public static String getEmbeddedType(CharSequence s) {
+		if (s == null) {
+			return null;
+		}
+		s = StringUtils.trin(s.toString());
+		if (s.equals("{{")) {
+			return "uml";
+		}
+		if (s.equals("{{uml")) {
+			return "uml";
+		}
+		if (s.equals("{{wbs")) {
+			return "wbs";
+		}
+		if (s.equals("{{mindmap")) {
+			return "mindmap";
+		}
+		if (s.equals("{{gantt")) {
+			return "gantt";
+		}
+		if (s.equals("{{json")) {
+			return "json";
+		}
+		if (s.equals("{{yaml")) {
+			return "yaml";
+		}
+		if (s.equals("{{wire")) {
+			return "wire";
+		}
+		return null;
+	}
+
 	private final Display system;
 
 	public EmbeddedDiagram(Display system) {
@@ -115,8 +147,8 @@ public class EmbeddedDiagram implements CharSequence {
 				final boolean isSvg = ug.matchesProperty("SVG");
 				if (isSvg) {
 					final String imageSvg = getImageSvg();
-					final SvgString svg = new SvgString(imageSvg, 1);
-					ug.draw(new UImageSvg(svg));
+					final UImageSvg svg = new UImageSvg(imageSvg, 1);
+					ug.draw(svg);
 					return;
 				}
 				final BufferedImage im = getImage();
@@ -131,18 +163,20 @@ public class EmbeddedDiagram implements CharSequence {
 		}
 
 		private String getImageSvg() throws IOException, InterruptedException {
+			final boolean sav = UseStyle.useBetaStyle();
 			final Diagram system = getSystem();
 			final ByteArrayOutputStream os = new ByteArrayOutputStream();
 			system.exportDiagram(os, 0, new FileFormatOption(FileFormat.SVG));
 			os.close();
+			UseStyle.setBetaStyle(sav);
 			return new String(os.toByteArray());
 		}
 
 		private BufferedImage getImage() throws IOException, InterruptedException {
 			if (image == null) {
-				final boolean sav = SkinParam.USE_STYLES();
+				final boolean sav = UseStyle.useBetaStyle();
 				image = getImageSlow();
-				SkinParam.setBetaStyle(sav);
+				UseStyle.setBetaStyle(sav);
 			}
 			return image;
 		}

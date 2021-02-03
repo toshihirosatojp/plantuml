@@ -40,31 +40,48 @@ import net.sourceforge.plantuml.cucadiagram.Display;
 import net.sourceforge.plantuml.graphic.FontConfiguration;
 import net.sourceforge.plantuml.graphic.HorizontalAlignment;
 import net.sourceforge.plantuml.graphic.TextBlock;
-import net.sourceforge.plantuml.project.time.Wink;
+import net.sourceforge.plantuml.project.time.Day;
 import net.sourceforge.plantuml.project.timescale.TimeScale;
 import net.sourceforge.plantuml.ugraphic.UFont;
 import net.sourceforge.plantuml.ugraphic.UGraphic;
 import net.sourceforge.plantuml.ugraphic.ULine;
+import net.sourceforge.plantuml.ugraphic.URectangle;
 import net.sourceforge.plantuml.ugraphic.UTranslate;
+import net.sourceforge.plantuml.ugraphic.color.HColor;
+import net.sourceforge.plantuml.ugraphic.color.HColorNone;
+import net.sourceforge.plantuml.ugraphic.color.HColorSet;
 import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
 
 public abstract class TimeHeader {
-	
-	protected static final int Y_POS_ROW16 = 16;
-	protected static final int Y_POS_ROW28 = 28;
 
+	protected final double Y_POS_ROW16() {
+		return 16;
+	}
+
+	protected final double Y_POS_ROW28() {
+		return 28;
+	}
+
+	protected final HColor veryLightGray = HColorSet.instance().getColorOrWhite("#E0E8E8");
+	protected final HColor lightGray = HColorSet.instance().getColorOrWhite("#909898");
 
 	private final TimeScale timeScale;
-	protected final Wink min;
-	protected final Wink max;
+	protected final Day min;
+	protected final Day max;
 
-	public TimeHeader(Wink min, Wink max, TimeScale timeScale) {
+	public TimeHeader(Day min, Day max, TimeScale timeScale) {
 		this.timeScale = timeScale;
 		this.min = min;
 		this.max = max;
 	}
 
-	public abstract void drawTimeHeader(final UGraphic ug, double totalHeight);
+	protected abstract double getTimeHeaderHeight();
+
+	public abstract double getTimeFooterHeight();
+
+	public abstract void drawTimeHeader(UGraphic ug, double totalHeightWithoutFooter);
+
+	public abstract void drawTimeFooter(UGraphic ug);
 
 	public abstract double getFullHeaderHeight();
 
@@ -75,20 +92,20 @@ public abstract class TimeHeader {
 		ug.apply(HColorUtils.LIGHT_GRAY).apply(UTranslate.dy(y)).draw(hline);
 	}
 
-	final protected FontConfiguration getFontConfiguration(int size, boolean bold) {
+	final protected FontConfiguration getFontConfiguration(int size, boolean bold, HColor color) {
 		UFont font = UFont.serif(size);
 		if (bold) {
 			font = font.bold();
 		}
-		return new FontConfiguration(font, HColorUtils.BLACK, HColorUtils.BLACK, false);
+		return new FontConfiguration(font, color, color, false);
 	}
 
 	public final TimeScale getTimeScale() {
 		return timeScale;
 	}
 
-	protected final TextBlock getTextBlock(final String text, int size, boolean bold) {
-		return Display.getWithNewlines(text).create(getFontConfiguration(size, bold), HorizontalAlignment.LEFT,
+	protected final TextBlock getTextBlock(String text, int size, boolean bold, HColor color) {
+		return Display.getWithNewlines(text).create(getFontConfiguration(size, bold, color), HorizontalAlignment.LEFT,
 				new SpriteContainerEmpty());
 	}
 
@@ -110,6 +127,15 @@ public abstract class TimeHeader {
 				return;
 			}
 		}
+	}
+
+	protected final void drawRectangle(UGraphic ug, double height, double x1, double x2) {
+		if (height == 0) {
+			return;
+		}
+		ug = ug.apply(new HColorNone());
+		ug = ug.apply(new UTranslate(x1, getFullHeaderHeight()));
+		ug.draw(new URectangle(x2 - x1, height));
 	}
 
 }

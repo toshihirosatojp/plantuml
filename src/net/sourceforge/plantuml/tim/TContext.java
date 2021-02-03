@@ -95,6 +95,7 @@ import net.sourceforge.plantuml.tim.stdlib.IntVal;
 import net.sourceforge.plantuml.tim.stdlib.InvokeProcedure;
 import net.sourceforge.plantuml.tim.stdlib.LogicalNot;
 import net.sourceforge.plantuml.tim.stdlib.Lower;
+import net.sourceforge.plantuml.tim.stdlib.Newline;
 import net.sourceforge.plantuml.tim.stdlib.RetrieveProcedure;
 import net.sourceforge.plantuml.tim.stdlib.SetVariableValue;
 import net.sourceforge.plantuml.tim.stdlib.StringFunction;
@@ -148,6 +149,7 @@ public class TContext {
 		functionsSet.addFunction(new Upper());
 		functionsSet.addFunction(new Lower());
 		functionsSet.addFunction(new StringFunction());
+		functionsSet.addFunction(new Newline());
 		// !exit
 		// !log
 		// %min
@@ -329,18 +331,20 @@ public class TContext {
 	}
 
 	private void addPlain(TMemory memory, StringLocated s) throws EaterException, EaterExceptionLocated {
-		StringLocated tmp = applyFunctionsAndVariablesInternal(memory, s);
+		final StringLocated tmp[] = applyFunctionsAndVariablesInternal(memory, s);
 		if (tmp != null) {
 			if (pendingAdd != null) {
-				tmp = new StringLocated(pendingAdd + tmp.getString(), tmp.getLocation());
+				tmp[0] = new StringLocated(pendingAdd + tmp[0].getString(), tmp[0].getLocation());
 				pendingAdd = null;
 			}
-			resultList.add(tmp);
+			for (StringLocated line : tmp) {
+				resultList.add(line);
+			}
 		}
 	}
 
 	private void simulatePlain(TMemory memory, StringLocated s) throws EaterException, EaterExceptionLocated {
-		final StringLocated ignored = applyFunctionsAndVariablesInternal(memory, s);
+		final StringLocated ignored[] = applyFunctionsAndVariablesInternal(memory, s);
 	}
 
 	private void executeAffectationDefine(TMemory memory, StringLocated s)
@@ -363,21 +367,27 @@ public class TContext {
 		undef.analyze(this, memory);
 	}
 
-	private StringLocated applyFunctionsAndVariablesInternal(TMemory memory, StringLocated located)
+	private StringLocated[] applyFunctionsAndVariablesInternal(TMemory memory, StringLocated located)
 			throws EaterException, EaterExceptionLocated {
 		if (memory.isEmpty() && functionsSet.size() == 0) {
-			return located;
+			return new StringLocated[] { located };
 		}
 		final String result = applyFunctionsAndVariables(memory, located.getLocation(), located.getString());
 		if (result == null) {
 			return null;
 		}
-		return new StringLocated(result, located.getLocation());
+		final String[] splited = result.split("\n");
+		final StringLocated[] tab = new StringLocated[splited.length];
+		for (int i = 0; i < splited.length; i++) {
+			tab[i] = new StringLocated(splited[i], located.getLocation());
+		}
+
+		return tab;
 	}
 
 	private String pendingAdd = null;
 
-	public String applyFunctionsAndVariables(TMemory memory, LineLocation location, String str)
+	public String applyFunctionsAndVariables(TMemory memory, LineLocation location, final String str)
 			throws EaterException, EaterExceptionLocated {
 		// https://en.wikipedia.org/wiki/Boyer%E2%80%93Moore%E2%80%93Horspool_algorithm
 		// https://stackoverflow.com/questions/1326682/java-replacing-multiple-different-substring-in-a-string-at-once-or-in-the-most
@@ -404,12 +414,17 @@ public class TContext {
 				}
 				if (function.getFunctionType() == TFunctionType.PROCEDURE) {
 					this.pendingAdd = result.toString();
-					executeVoid3(location, memory, sub, function);
+					executeVoid3(location, memory, sub, function, call);
+					i += call.getCurrentPosition();
+					final String remaining = str.substring(i);
+					if (remaining.length() > 0) {
+						appendToLastResult(remaining);
+					}
 					return null;
 				}
 				if (function.getFunctionType() == TFunctionType.LEGACY_DEFINELONG) {
 					this.pendingAdd = str.substring(0, i);
-					executeVoid3(location, memory, sub, function);
+					executeVoid3(location, memory, sub, function, call);
 					return null;
 				}
 				assert function.getFunctionType() == TFunctionType.RETURN_FUNCTION
@@ -427,9 +442,16 @@ public class TContext {
 		return result.toString();
 	}
 
-	private void executeVoid3(LineLocation location, TMemory memory, String s, TFunction function)
-			throws EaterException, EaterExceptionLocated {
-		function.executeProcedure(this, memory, location, s);
+	private void appendToLastResult(String remaining) {
+		final StringLocated last = this.resultList.get(this.resultList.size() - 1);
+		this.resultList.set(this.resultList.size() - 1, last.append(remaining));
+	}
+
+	private void executeVoid3(LineLocation location, TMemory memory, String s, TFunction function,
+			EaterFunctionCall call) throws EaterException, EaterExceptionLocated {
+		function.executeProcedureInternal(this, memory, call.getValues(), call.getNamedArguments());
+		// function.executeProcedure(this, memory, location, s, call.getValues(),
+		// call.getNamedArguments());
 	}
 
 	private void executeImport(TMemory memory, StringLocated s) throws EaterException, EaterExceptionLocated {

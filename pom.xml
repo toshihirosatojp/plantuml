@@ -35,7 +35,7 @@
 
     <groupId>net.sourceforge.plantuml</groupId>
     <artifactId>plantuml</artifactId>
-    <version>1.2020.15-SNAPSHOT</version>
+    <version>1.2021.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>PlantUML</name>
@@ -49,7 +49,7 @@
         * state diagram
         * object diagram
     </description>
-    <url>http://plantuml.sourceforge.net</url>
+    <url>https://plantuml.com</url>
 
     <parent>
         <groupId>org.sonatype.oss</groupId>
@@ -61,7 +61,7 @@
         <dependency>
             <groupId>org.apache.ant</groupId>
             <artifactId>ant</artifactId>
-            <version>1.8.1</version>
+            <version>1.9.15</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -93,18 +93,6 @@
         </developer>
     </developers>
 
-	<profiles>
-	  <profile>
-		<id>doclint-java8-disable</id>
-		<activation>
-		  <jdk>[1.8,)</jdk>
-		</activation>
-		<properties>
-		  <javadoc.opts>-Xdoclint:none</javadoc.opts>
-		</properties>
-	  </profile>
-	</profiles>
-
     <build>
         <sourceDirectory>${project.basedir}/src</sourceDirectory>
         <resources>
@@ -118,6 +106,7 @@
                     <include>sprites/archimate/*.png</include>
                     <include>net/sourceforge/plantuml/dedication/*.png</include>
                     <include>net/sourceforge/plantuml/math/*.js</include>
+                    <include>net/sourceforge/plantuml/windowsdot/*.dat</include>
                 </includes>
             </resource>
             <resource>
@@ -135,7 +124,7 @@
                 <configuration>
                     <source>1.7</source>
                     <target>1.7</target>
-                    <debug>false</debug>
+                    <debug>true</debug>
                 </configuration>
             </plugin>
             <plugin>
@@ -158,7 +147,9 @@
                             <goal>jar</goal>
                         </goals>
 			            <configuration>
-							<additionalparam>${javadoc.opts}</additionalparam>
+						  <javadoc.opts>-Xdoclint:none</javadoc.opts>
+						  <additionalparam>-Xdoclint:none</additionalparam>
+						  <doclint>none</doclint>
 			            </configuration>
                     </execution>
                 </executions>
@@ -170,6 +161,9 @@
                         <manifest>
                             <mainClass>net.sourceforge.plantuml.Run</mainClass>
                         </manifest>
+                        <manifestEntries>
+                            <Automatic-Module-Name>net.sourceforge.plantuml</Automatic-Module-Name>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>

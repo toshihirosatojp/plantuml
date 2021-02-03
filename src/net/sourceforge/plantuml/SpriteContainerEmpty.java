@@ -94,4 +94,12 @@ public class SpriteContainerEmpty implements SpriteContainer, ISkinSimple {
 		throw new UnsupportedOperationException();
 	}
 
+	public double minClassWidth() {
+		return 0;
+	}
+
+	public String transformStringForSizeHack(String s) {
+		return s;
+	}
+
 }

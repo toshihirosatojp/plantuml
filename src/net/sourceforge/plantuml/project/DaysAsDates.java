@@ -37,11 +37,9 @@ package net.sourceforge.plantuml.project;
 
 import java.util.Iterator;
 
-import net.sourceforge.plantuml.project.lang.Complement;
-import net.sourceforge.plantuml.project.lang.Subject;
 import net.sourceforge.plantuml.project.time.Day;
 
-public class DaysAsDates implements Subject, Complement, Iterable<Day> {
+public class DaysAsDates implements Iterable<Day> {
 
 	private final Day date1;
 	private final Day date2;
@@ -58,7 +56,7 @@ public class DaysAsDates implements Subject, Complement, Iterable<Day> {
 			if (gantt.isOpen(tmp)) {
 				count--;
 			}
-			tmp = tmp.next();
+			tmp = tmp.increment();
 		}
 		this.date2 = tmp;
 	}
@@ -77,7 +75,7 @@ public class DaysAsDates implements Subject, Complement, Iterable<Day> {
 
 		public Day next() {
 			final Day result = current;
-			current = current.next();
+			current = current.increment();
 			return result;
 		}
 

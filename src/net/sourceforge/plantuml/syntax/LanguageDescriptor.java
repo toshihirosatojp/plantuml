@@ -90,6 +90,8 @@ public class LanguageDescriptor {
 		keyword.add("@enddot");
 		keyword.add("@startsalt");
 		keyword.add("@endsalt");
+		keyword.add("@startjson");
+		keyword.add("@endjson");
 		keyword.add("as");
 		keyword.add("also");
 		keyword.add("autonumber");
@@ -134,6 +136,7 @@ public class LanguageDescriptor {
 		keyword.add("up");
 		keyword.add("down");
 		keyword.add("if");
+		keyword.add("then");
 		keyword.add("else");
 		keyword.add("elseif");
 		keyword.add("endif");
@@ -161,7 +164,23 @@ public class LanguageDescriptor {
 		keyword.add("stereotype");
 		keyword.add("split");
 		keyword.add("style");
-		keyword.add("sprite");
+		keyword.add("sprite");		
+		keyword.add("circle");
+		keyword.add("empty");
+		keyword.add("members");
+		keyword.add("description");
+		keyword.add("true");
+		keyword.add("false");
+		keyword.add("normal");
+		keyword.add("italic");
+		keyword.add("bold");
+		keyword.add("plain");
+		keyword.add("color");
+		keyword.add("dotted");
+		keyword.add("dashed");
+		keyword.add("bold");
+		keyword.add("map");
+
 
 		preproc.add("!exit");
 		preproc.add("!include");

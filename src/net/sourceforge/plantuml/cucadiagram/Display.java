@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +64,7 @@ import net.sourceforge.plantuml.creole.Parser;
 import net.sourceforge.plantuml.creole.Sheet;
 import net.sourceforge.plantuml.creole.SheetBlock1;
 import net.sourceforge.plantuml.creole.SheetBlock2;
+import net.sourceforge.plantuml.creole.legacy.CreoleParser;
 import net.sourceforge.plantuml.graphic.CircledCharacter;
 import net.sourceforge.plantuml.graphic.FontConfiguration;
 import net.sourceforge.plantuml.graphic.HorizontalAlignment;
@@ -77,6 +79,7 @@ import net.sourceforge.plantuml.style.Style;
 import net.sourceforge.plantuml.ugraphic.UFont;
 import net.sourceforge.plantuml.ugraphic.UStroke;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
 
 public class Display implements Iterable<CharSequence> {
 
@@ -149,12 +152,14 @@ public class Display implements Iterable<CharSequence> {
 		return create(Arrays.asList(s));
 	}
 
-	public static Display createFoo(List<StringLocated> data) {
+	public static Display createFoo(List<StringLocated> data) throws NoSuchColorException {
 		final List<CharSequence> tmp = new ArrayList<CharSequence>();
 		for (StringLocated s : data) {
 			tmp.add(s.getString());
 		}
-		return create(tmp);
+		final Display result = create(tmp);
+		CreoleParser.checkColor(result);
+		return result;
 	}
 
 	public static Display create(Collection<? extends CharSequence> other) {
@@ -163,6 +168,12 @@ public class Display implements Iterable<CharSequence> {
 
 	public static Display getWithNewlines(Code s) {
 		return getWithNewlines(s.getName());
+	}
+
+	public static Display getWithNewlines2(String s) throws NoSuchColorException {
+		final Display result = getWithNewlines(s);
+		CreoleParser.checkColor(result);
+		return result;
 	}
 
 	public static Display getWithNewlines(String s) {
@@ -237,17 +248,18 @@ public class Display implements Iterable<CharSequence> {
 		final Iterator<? extends CharSequence> it = strings.iterator();
 		while (it.hasNext()) {
 			CharSequence s = it.next();
-			if (s != null && StringUtils.trin(s.toString()).equals("{{")) {
+			final String type = EmbeddedDiagram.getEmbeddedType(s);
+			if (type != null) {
 				final List<CharSequence> other = new ArrayList<CharSequence>();
-				other.add("@startuml");
+				other.add("@start" + type);
 				while (it.hasNext()) {
-					CharSequence s2 = it.next();
+					final CharSequence s2 = it.next();
 					if (s2 != null && StringUtils.trin(s2.toString()).equals("}}")) {
 						break;
 					}
 					other.add(s2);
 				}
-				other.add("@enduml");
+				other.add("@end" + type);
 				s = new EmbeddedDiagram(Display.create(other));
 			}
 			result.add(s);
@@ -397,8 +409,8 @@ public class Display implements Iterable<CharSequence> {
 		return displayData.get(i);
 	}
 
-	public Iterator<CharSequence> iterator() {
-		return Collections.unmodifiableList(displayData).iterator();
+	public ListIterator<CharSequence> iterator() {
+		return Collections.unmodifiableList(displayData).listIterator();
 	}
 
 	public Display subList(int i, int size) {

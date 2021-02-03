@@ -41,12 +41,13 @@ import java.util.List;
 
 import net.sourceforge.plantuml.ColorParam;
 import net.sourceforge.plantuml.ISkinParam;
-import net.sourceforge.plantuml.SkinParam;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.skin.rose.Rose;
 import net.sourceforge.plantuml.style.PName;
 import net.sourceforge.plantuml.style.Style;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
 import net.sourceforge.plantuml.ugraphic.color.HColorSet;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
 
 public class Rainbow {
 
@@ -76,7 +77,7 @@ public class Rainbow {
 	}
 
 	public static Rainbow build(ISkinParam skinParam) {
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			throw new IllegalStateException();
 		}
 		final HColor arrow = rose.getHtmlColor(skinParam, ColorParam.arrow);
@@ -105,7 +106,7 @@ public class Rainbow {
 		return result;
 	}
 
-	public static Rainbow build(ISkinParam skinParam, String colorString, int colorArrowSeparationSpace) {
+	public static Rainbow build(ISkinParam skinParam, String colorString, int colorArrowSeparationSpace) throws NoSuchColorException {
 		if (colorString == null) {
 			return Rainbow.none();
 		}

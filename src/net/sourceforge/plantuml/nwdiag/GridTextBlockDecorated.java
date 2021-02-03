@@ -34,51 +34,68 @@
  */
 package net.sourceforge.plantuml.nwdiag;
 
-import java.util.Collection;
+import java.util.List;
 
+import net.sourceforge.plantuml.ISkinParam;
 import net.sourceforge.plantuml.graphic.StringBounder;
 import net.sourceforge.plantuml.ugraphic.MinMax;
 import net.sourceforge.plantuml.ugraphic.UGraphic;
 import net.sourceforge.plantuml.ugraphic.URectangle;
 import net.sourceforge.plantuml.ugraphic.UTranslate;
-import net.sourceforge.plantuml.ugraphic.color.HColor;
-import net.sourceforge.plantuml.ugraphic.color.HColorSet;
 
 public class GridTextBlockDecorated extends GridTextBlockSimple {
 
-	public static final HColorSet colors = HColorSet.instance();
-
 	public static final int NETWORK_THIN = 5;
 
-	private final Collection<DiagGroup> groups;
+	private final List<NwGroup> groups;
+	private final List<Network> networks;
 
-	public GridTextBlockDecorated(int lines, int cols, Collection<DiagGroup> groups) {
-		super(lines, cols);
+	public GridTextBlockDecorated(int lines, int cols, List<NwGroup> groups, List<Network> networks,
+			ISkinParam skinparam) {
+		super(lines, cols, skinparam);
 		this.groups = groups;
+		this.networks = networks;
 	}
 
 	@Override
-	public void drawGrid(UGraphic ug) {
-		for (DiagGroup group : groups) {
-			drawGroups(ug, group);
+	protected void drawGrid(UGraphic ug) {
+		for (NwGroup group : groups) {
+			drawGroups(ug, group, skinparam);
 		}
 		drawNetworkTube(ug);
+		drawLinks(ug);
 	}
 
-	private void drawGroups(UGraphic ug, DiagGroup group) {
+	private void drawLinks(UGraphic ug) {
+		final StringBounder stringBounder = ug.getStringBounder();
+		for (int i = 0; i < data.getNbLines(); i++) {
+			final double lineHeight = lineHeight(stringBounder, i);
+			double x = 0;
+			for (int j = 0; j < data.getNbCols(); j++) {
+				final double colWidth = colWidth(stringBounder, j);
+				if (data.get(i, j) != null) {
+					data.get(i, j).drawLinks(ug, x, colWidth, lineHeight);
+				}
+				x += colWidth;
+			}
+		}
+
+	}
+
+	private void drawGroups(UGraphic ug, NwGroup group, ISkinParam skinParam) {
 		final StringBounder stringBounder = ug.getStringBounder();
 
 		MinMax size = null;
 		double y = 0;
-		for (int i = 0; i < data.length; i++) {
+		for (int i = 0; i < data.getNbLines(); i++) {
 			final double lineHeight = lineHeight(stringBounder, i);
 			double x = 0;
-			for (int j = 0; j < data[i].length; j++) {
+			for (int j = 0; j < data.getNbCols(); j++) {
 				final double colWidth = colWidth(stringBounder, j);
-				final LinkedElement element = data[i][j];
+				final LinkedElement element = data.get(i, j);
 				if (element != null && group.matches(element)) {
-					final MinMax minMax = element.getMinMax(stringBounder, colWidth, lineHeight).translate(
-							new UTranslate(x, y));
+					final MinMax minMax = element.getMinMax(stringBounder, colWidth, lineHeight)
+							.translate(new UTranslate(x, y));
 					size = size == null ? minMax : size.addMinMax(minMax);
 				}
 				x += colWidth;
@@ -86,50 +103,82 @@ public class GridTextBlockDecorated extends GridTextBlockSimple {
 			y += lineHeight;
 		}
 		if (size != null) {
-			HColor color = group.getColor();
-			if (color == null) {
-				color = colors.getColorIfValid("#AAA");
-			}
-			size.draw(ug, color);
+			group.drawGroup(ug, size, skinParam);
 		}
 
 	}
 
+	private boolean isThereALink(int j, Network network) {
+		for (int i = 0; i < data.getNbLines(); i++) {
+			final LinkedElement element = data.get(i, j);
+			if (element != null && element.isLinkedTo(network)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private void drawNetworkTube(final UGraphic ug) {
+
 		final StringBounder stringBounder = ug.getStringBounder();
 		double y = 0;
-		for (int i = 0; i < data.length; i++) {
+		for (int i = 0; i < data.getNbLines(); i++) {
 			final Network network = getNetwork(i);
-			double x = 0;
-			double xmin = -1;
-			double xmax = 0;
-			for (int j = 0; j < data[i].length; j++) {
-				final boolean hline = isPresent(i, j) || isPresent(i - 1, j);
-				if (hline && xmin < 0) {
-					xmin = x;
-				}
-				x += colWidth(stringBounder, j);
-				if (hline) {
-					xmax = x;
-				}
-			}
-			final URectangle rect = new URectangle(xmax - xmin, NETWORK_THIN);
+			computeMixMax(data.getLine(i), stringBounder, network);
+
+			final URectangle rect = new URectangle(network.getXmax() - network.getXmin(), NETWORK_THIN);
 			rect.setDeltaShadow(1.0);
-			UGraphic ug2 = ug.apply(new UTranslate(xmin, y));
+			UGraphic ug2 = ug.apply(new UTranslate(network.getXmin(), y));
 			if (network != null && network.getColor() != null) {
 				ug2 = ug2.apply(network.getColor().bg());
 			}
-			ug2.draw(rect);
+			if (network != null) {
+				network.setY(y);
+			}
+			if (network.isVisible()) {
+				ug2.draw(rect);
+			}
 			y += lineHeight(stringBounder, i);
 		}
 	}
 
-	private Network getNetwork(int i) {
-		for (int j = 0; j < data[i].length; j++) {
-			if (isPresent(i, j)) {
-				return data[i][j].getNetwork();
+	private void computeMixMax(LinkedElement line[], StringBounder stringBounder, Network network) {
+		double x = 0;
+		double xmin = network.isFullWidth() ? 0 : -1;
+		double xmax = 0;
+		for (int j = 0; j < line.length; j++) {
+			final boolean hline = isThereALink(j, network);
+			if (hline && xmin < 0) {
+				xmin = x;
+			}
+			x += colWidth(stringBounder, j);
+			if (hline || network.isFullWidth()) {
+				xmax = x;
 			}
 		}
-		return null;
+		network.setMinMax(xmin, xmax);
+
+	}
+
+	private Network getNetwork(int i) {
+		return networks.get(i);
+	}
+
+	public void checkGroups() {
+		for (int i = 0; i < groups.size(); i++) {
+			for (int j = i + 1; j < groups.size(); j++) {
+				final NwGroup group1 = groups.get(i);
+				final NwGroup group2 = groups.get(j);
+				if (group1.getNetwork() != group2.getNetwork()) {
+					continue;
+				}
+				final Footprint footprint1 = getFootprint(group1);
+				final Footprint footprint2 = getFootprint(group2);
+				final Footprint inter = footprint1.intersection(footprint2);
+				data.swapCols(inter.getMin(), inter.getMax());
+				return;
+			}
+		}
+
 	}
 }

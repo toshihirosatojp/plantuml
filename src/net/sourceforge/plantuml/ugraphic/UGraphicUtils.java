@@ -44,9 +44,11 @@ import java.io.OutputStream;
 import net.sourceforge.plantuml.EmptyImageBuilder;
 import net.sourceforge.plantuml.FileFormat;
 import net.sourceforge.plantuml.FileFormatOption;
+import net.sourceforge.plantuml.SvgCharSizeHack;
 import net.sourceforge.plantuml.eps.EpsStrategy;
 import net.sourceforge.plantuml.graphic.TextBlock;
 import net.sourceforge.plantuml.png.PngIO;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.ugraphic.color.ColorMapper;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
 import net.sourceforge.plantuml.ugraphic.eps.UGraphicEps;
@@ -63,9 +65,10 @@ public abstract class UGraphicUtils {
 			PngIO.write(im, os, fileFormatOption.isWithMetadata() ? metadata : null, 96);
 		} else if (fileFormat == FileFormat.SVG) {
 			final Dimension2D size = computeSize(colorMapper, background, image);
-			final UGraphicSvg svg = new UGraphicSvg(true, size, colorMapper,
-					colorMapper.toRGB(background), false, 1.0, fileFormatOption.getSvgLinkTarget(),
-					fileFormatOption.getHoverColor(), seed, fileFormatOption.getPreserveAspectRatio());
+			final UGraphicSvg svg = new UGraphicSvg(true, size, colorMapper, colorMapper.toRGB(background), false, 1.0,
+					fileFormatOption.getSvgLinkTarget(), fileFormatOption.getHoverColor(), seed,
+					fileFormatOption.getPreserveAspectRatio(), SvgCharSizeHack.NO_HACK,
+					LengthAdjust.defaultValue());
 			image.drawU(svg);
 			svg.createXml(os, fileFormatOption.isWithMetadata() ? metadata : null);
 		} else if (fileFormat == FileFormat.EPS) {

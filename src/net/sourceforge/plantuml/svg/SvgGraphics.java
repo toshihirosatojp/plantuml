@@ -36,6 +36,7 @@
 package net.sourceforge.plantuml.svg;
 
 import java.awt.geom.Dimension2D;
+import java.awt.geom.PathIterator;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -65,11 +66,11 @@ import org.w3c.dom.Element;
 
 import net.sourceforge.plantuml.Log;
 import net.sourceforge.plantuml.SignatureUtils;
-import net.sourceforge.plantuml.SvgString;
 import net.sourceforge.plantuml.code.Base64Coder;
 import net.sourceforge.plantuml.security.ImageIO;
 import net.sourceforge.plantuml.security.SecurityUtils;
 import net.sourceforge.plantuml.tikz.TikzGraphics;
+import net.sourceforge.plantuml.ugraphic.UImageSvg;
 import net.sourceforge.plantuml.ugraphic.UPath;
 import net.sourceforge.plantuml.ugraphic.USegment;
 import net.sourceforge.plantuml.ugraphic.USegmentType;
@@ -117,6 +118,7 @@ public class SvgGraphics {
 	private final String shadowId;
 	private final String gradientId;
 	private final boolean svgDimensionStyle;
+	private final LengthAdjust lengthAdjust;
 
 	final protected void ensureVisible(double x, double y) {
 		if (x > maxX) {
@@ -128,13 +130,14 @@ public class SvgGraphics {
 	}
 
 	public SvgGraphics(boolean svgDimensionStyle, Dimension2D minDim, double scale, String hover, long seed,
-			String preserveAspectRatio) {
-		this(svgDimensionStyle, minDim, null, scale, hover, seed, preserveAspectRatio);
+			String preserveAspectRatio, LengthAdjust lengthAdjust) {
+		this(svgDimensionStyle, minDim, null, scale, hover, seed, preserveAspectRatio, lengthAdjust);
 	}
 
 	public SvgGraphics(boolean svgDimensionStyle, Dimension2D minDim, String backcolor, double scale, String hover,
-			long seed, String preserveAspectRatio) {
+			long seed, String preserveAspectRatio, LengthAdjust lengthAdjust) {
 		try {
+			this.lengthAdjust = lengthAdjust;
 			this.svgDimensionStyle = svgDimensionStyle;
 			this.scale = scale;
 			this.document = getDocument();
@@ -176,8 +179,7 @@ public class SvgGraphics {
 	private Element pendingBackground;
 
 	public void paintBackcolorGradient(ColorMapper mapper, HColorGradient gr) {
-		final String id = createSvgGradient(mapper.toRGB(gr.getColor1()), mapper.toRGB(gr.getColor2()),
-				gr.getPolicy());
+		final String id = createSvgGradient(mapper.toRGB(gr.getColor1()), mapper.toRGB(gr.getColor2()), gr.getPolicy());
 		setFillColor("url(#" + id + ")");
 		setStrokeColor(null);
 		pendingBackground = createRectangleInternal(0, 0, 0, 0);
@@ -229,7 +231,7 @@ public class SvgGraphics {
 			elt.setAttribute("cy", format(y));
 			elt.setAttribute("rx", format(xRadius));
 			elt.setAttribute("ry", format(yRadius));
-			elt.setAttribute("fill", fill);
+			fillMe(elt);
 			elt.setAttribute("style", getStyle());
 			addFilterShadowId(elt, deltaShadow);
 			getG().appendChild(elt);
@@ -243,7 +245,7 @@ public class SvgGraphics {
 					+ format(x2) + " " + format(y2);
 			final Element elt = (Element) document.createElement("path");
 			elt.setAttribute("d", path);
-			elt.setAttribute("fill", fill);
+			fillMe(elt);
 			elt.setAttribute("style", getStyle());
 			getG().appendChild(elt);
 		}
@@ -320,7 +322,7 @@ public class SvgGraphics {
 	}
 
 	public void svgRectangle(double x, double y, double width, double height, double rx, double ry, double deltaShadow,
-			String id) {
+			String id, String codeLine) {
 		if (height <= 0 || width <= 0) {
 			return;
 			// To be restored when Teoz will be finished
@@ -337,6 +339,9 @@ public class SvgGraphics {
 			if (id != null) {
 				elt.setAttribute("id", id);
 			}
+			if (codeLine != null) {
+				elt.setAttribute("codeLine", codeLine);
+			}
 			getG().appendChild(elt);
 		}
 		ensureVisible(x + width + 2 * deltaShadow, y + height + 2 * deltaShadow);
@@ -348,8 +353,8 @@ public class SvgGraphics {
 		elt.setAttribute("y", format(y));
 		elt.setAttribute("width", format(width));
 		elt.setAttribute("height", format(height));
-		elt.setAttribute("fill", fill);
-		elt.setAttribute("style", getStyle());
+		fillMe(elt);
+		elt.setAttribute("style", getStyleSpecial());
 		return elt;
 	}
 
@@ -370,13 +375,28 @@ public class SvgGraphics {
 	}
 
 	private String getStyle() {
-		return getStyleInternal(stroke, strokeWidth, strokeDasharray);
+		final StringBuilder style = new StringBuilder();
+		style.append("stroke:" + stroke + ";");
+		style.append("stroke-width:" + strokeWidth + ";");
+		if (fill.equals("#00000000")) {
+			style.append("fill:none;");
+		}
+		if (strokeDasharray != null) {
+			style.append("stroke-dasharray:" + strokeDasharray + ";");
+		}
+		return style.toString();
 	}
 
-	private static String getStyleInternal(String color, String strokeWidth, String strokeDasharray) {
-		final StringBuilder style = new StringBuilder("stroke: " + color + "; stroke-width: " + strokeWidth + ";");
+	// https://forum.plantuml.net/12469/package-background-transparent-package-default-background?show=12479#c12479
+	private String getStyleSpecial() {
+		final StringBuilder style = new StringBuilder();
+		style.append("stroke:" + stroke + ";");
+		style.append("stroke-width:" + strokeWidth + ";");
+		if (fill.equals("#00000000")) {
+			style.append("fill:none;");
+		}
 		if (strokeDasharray != null) {
-			style.append(" stroke-dasharray: " + strokeDasharray + ";");
+			style.append("stroke-dasharray:" + strokeDasharray + ";");
 		}
 		return style.toString();
 	}
@@ -394,8 +414,8 @@ public class SvgGraphics {
 				sb.append(format(coord));
 			}
 			elt.setAttribute("points", sb.toString());
-			elt.setAttribute("fill", fill);
-			elt.setAttribute("style", getStyle());
+			fillMe(elt);
+			elt.setAttribute("style", getStyleSpecial());
 			addFilterShadowId(elt, deltaShadow);
 			getG().appendChild(elt);
 		}
@@ -415,11 +435,18 @@ public class SvgGraphics {
 			// elt.setAttribute("text-rendering", "geometricPrecision");
 			elt.setAttribute("x", format(x));
 			elt.setAttribute("y", format(y));
-			elt.setAttribute("fill", fill);
+			fillMe(elt);
 			elt.setAttribute("font-size", format(fontSize));
 			// elt.setAttribute("text-anchor", "middle");
-			elt.setAttribute("lengthAdjust", "spacingAndGlyphs");
-			elt.setAttribute("textLength", format(textLength));
+
+			if (lengthAdjust == LengthAdjust.SPACING) {
+				elt.setAttribute("lengthAdjust", "spacing");
+				elt.setAttribute("textLength", format(textLength));
+			} else if (lengthAdjust == LengthAdjust.SPACING_AND_GLYPHS) {
+				elt.setAttribute("lengthAdjust", "spacingAndGlyphs");
+				elt.setAttribute("textLength", format(textLength));
+			}
+
 			if (fontWeight != null) {
 				elt.setAttribute("font-weight", fontWeight);
 			}
@@ -533,7 +560,13 @@ public class SvgGraphics {
 			final String k = "<" + ent.getKey() + "/>";
 			s = s.replace(k, ent.getValue());
 		}
+		s = removeXmlHeader(s);
 		os.write(s.getBytes());
+	}
+
+	private String removeXmlHeader(String s) {
+		s = s.replaceFirst("^<\\?xml [^<>]+?\\>", "");
+		return s;
 	}
 
 	private void createXmlInternal(OutputStream os) throws TransformerException {
@@ -617,13 +650,23 @@ public class SvgGraphics {
 			final Element elt = (Element) document.createElement("path");
 			elt.setAttribute("d", sb.toString());
 			elt.setAttribute("style", getStyle());
-			elt.setAttribute("fill", fill);
+			fillMe(elt);
 			final String id = path.getComment();
 			if (id != null) {
 				elt.setAttribute("id", id);
 			}
+			final String codeLine = path.getCodeLine();
+			if (codeLine != null) {
+				elt.setAttribute("codeLine", codeLine);
+			}
 			addFilterShadowId(elt, deltaShadow);
 			getG().appendChild(elt);
+		}
+	}
+
+	private void fillMe(Element elt) {
+		if (fill.equals("#00000000") == false) {
+			elt.setAttribute("fill", fill);
 		}
 	}
 
@@ -682,10 +725,38 @@ public class SvgGraphics {
 		if (hidden == false) {
 			final Element elt = (Element) document.createElement("path");
 			elt.setAttribute("d", currentPath.toString());
+			fillMe(elt);
 			// elt elt.setAttribute("style", getStyle());
 			getG().appendChild(elt);
 		}
 		currentPath = null;
+
+	}
+
+	public void drawPathIterator(double x, double y, PathIterator path) {
+
+		this.newpath();
+		final double coord[] = new double[6];
+		while (path.isDone() == false) {
+			final int code = path.currentSegment(coord);
+			if (code == PathIterator.SEG_MOVETO) {
+				this.moveto(coord[0] + x, coord[1] + y);
+			} else if (code == PathIterator.SEG_LINETO) {
+				this.lineto(coord[0] + x, coord[1] + y);
+			} else if (code == PathIterator.SEG_CLOSE) {
+				this.closepath();
+			} else if (code == PathIterator.SEG_CUBICTO) {
+				this.curveto(coord[0] + x, coord[1] + y, coord[2] + x, coord[3] + y, coord[4] + x, coord[5] + y);
+			} else if (code == PathIterator.SEG_QUADTO) {
+				this.quadto(coord[0] + x, coord[1] + y, coord[2] + x, coord[3] + y);
+			} else {
+				throw new UnsupportedOperationException("code=" + code);
+			}
+
+			path.next();
+		}
+
+		this.fill(path.getWindingRule());
 
 	}
 
@@ -706,7 +777,7 @@ public class SvgGraphics {
 
 	private final Map<String, String> images = new HashMap<String, String>();
 
-	public void svgImage(SvgString image, double x, double y) {
+	public void svgImage(UImageSvg image, double x, double y) {
 		if (hidden == false) {
 			String svg = manageScale(image);
 			final String pos = "<svg x=\"" + format(x) + "\" y=\"" + format(y) + "\">";
@@ -720,14 +791,22 @@ public class SvgGraphics {
 		ensureVisible(x + image.getData("width"), y + image.getData("height"));
 	}
 
-	private String manageScale(SvgString svg) {
-		final double svgScale = svg.getScale();
+	private String manageScale(UImageSvg svgImage) {
+		final double svgScale = svgImage.getScale();
+		String svg = svgImage.getSvg(false);
 		if (svgScale * scale == 1) {
-			return svg.getSvg(false);
+			return svg;
 		}
+		final String svg2 = svg.replace('\n', ' ').replace('\r', ' ');
+		if (svg2.contains("<g ") == false && svg2.contains("<g>") == false) {
+			svg = svg.replaceFirst("\\<svg\\>", "<svg><g>");
+			svg = svg.replaceFirst("\\</svg\\>", "</g></svg>");
+		}
+		final String factor = format(svgScale);
 		final String s1 = "\\<g\\b";
-		final String s2 = "<g transform=\"scale(" + format(svgScale) + "," + format(svgScale) + ")\" ";
-		return svg.getSvg(false).replaceFirst(s1, s2);
+		final String s2 = "<g transform=\"scale(" + factor + "," + factor + ")\" ";
+		svg = svg.replaceFirst(s1, s2);
+		return svg;
 	}
 
 	private String toBase64(BufferedImage image) throws IOException {
@@ -801,9 +880,9 @@ public class SvgGraphics {
 			return;
 		}
 
-//		if (pendingAction.size() > 0) {
-//			closeLink();
-//		}
+		if (pendingAction.size() > 0) {
+			closeLink();
+		}
 
 		pendingAction.add(0, (Element) document.createElement("a"));
 		pendingAction.get(0).setAttribute("target", target);

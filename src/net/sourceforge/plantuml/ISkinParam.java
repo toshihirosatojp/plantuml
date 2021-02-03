@@ -51,9 +51,11 @@ import net.sourceforge.plantuml.style.StyleBuilder;
 import net.sourceforge.plantuml.svek.ConditionEndStyle;
 import net.sourceforge.plantuml.svek.ConditionStyle;
 import net.sourceforge.plantuml.svek.PackageStyle;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.ugraphic.UFont;
 import net.sourceforge.plantuml.ugraphic.UStroke;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
 
 public interface ISkinParam extends ISkinSimple {
 
@@ -67,7 +69,7 @@ public interface ISkinParam extends ISkinSimple {
 
 	public HColor getHtmlColor(ColorParam param, Stereotype stereotype, boolean clickable);
 
-	public Colors getColors(ColorParam param, Stereotype stereotype);
+	public Colors getColors(ColorParam param, Stereotype stereotype) throws NoSuchColorException;
 
 	public HColor getFontHtmlColor(Stereotype stereotype, FontParam... param);
 
@@ -125,8 +127,6 @@ public interface ISkinParam extends ISkinSimple {
 	public ConditionStyle getConditionStyle();
 
 	public ConditionEndStyle getConditionEndStyle();
-
-	public double minClassWidth();
 
 	public boolean sameClassWidth();
 
@@ -189,5 +189,10 @@ public interface ISkinParam extends ISkinSimple {
 	public void setDefaultSkin(String newSkin);
 
 	public ActorStyle actorStyle();
+
+	public void setSvgSize(String origin, String sizeToUse);
+	
+	public LengthAdjust getlengthAdjust();
+
 
 }

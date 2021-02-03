@@ -47,6 +47,7 @@ import java.io.IOException;
 import net.sourceforge.plantuml.braille.BrailleCharFactory;
 import net.sourceforge.plantuml.braille.UGraphicBraille;
 import net.sourceforge.plantuml.graphic.StringBounder;
+import net.sourceforge.plantuml.graphic.StringBounderRaw;
 import net.sourceforge.plantuml.png.MetadataTag;
 import net.sourceforge.plantuml.security.SFile;
 import net.sourceforge.plantuml.svg.SvgGraphics;
@@ -97,31 +98,51 @@ public enum FileFormat {
 	}
 
 	public StringBounder getDefaultStringBounder(TikzFontDistortion tikzFontDistortion) {
+		return getDefaultStringBounder(tikzFontDistortion, SvgCharSizeHack.NO_HACK);
+	}
+
+	public StringBounder getDefaultStringBounder(TikzFontDistortion tikzFontDistortion, SvgCharSizeHack charSizeHack) {
 		if (this == LATEX || this == LATEX_NO_PREAMBLE) {
 			return getTikzStringBounder(tikzFontDistortion);
 		}
 		if (this == BRAILLE_PNG) {
 			return getBrailleStringBounder();
-
+		}
+		if (this == SVG) {
+			return getSvgStringBounder(charSizeHack);
 		}
 		return getNormalStringBounder();
 	}
 
-	private StringBounder getNormalStringBounder() {
-		return new StringBounder() {
-			@Override
+	private StringBounder getSvgStringBounder(final SvgCharSizeHack charSizeHack) {
+		return new StringBounderRaw() {
 			public String toString() {
-				return "FileFormat::getNormalStringBounder";
+				return "FileFormat::getSvgStringBounder";
 			}
 
-			public Dimension2D calculateDimension(UFont font, String text) {
+			protected Dimension2D calculateDimensionInternal(UFont font, String text) {
+				text = charSizeHack.transformStringForSizeHack(text);
 				return getJavaDimension(font, text);
 			}
 
 		};
 	}
 
-	private Dimension2DDouble getJavaDimension(UFont font, String text) {
+	private StringBounder getNormalStringBounder() {
+		return new StringBounderRaw() {
+			@Override
+			public String toString() {
+				return "FileFormat::getNormalStringBounder";
+			}
+
+			protected Dimension2D calculateDimensionInternal(UFont font, String text) {
+				return getJavaDimension(font, text);
+			}
+
+		};
+	}
+
+	static private Dimension2DDouble getJavaDimension(UFont font, String text) {
 		final Font javaFont = font.getFont();
 		final FontMetrics fm = gg.getFontMetrics(javaFont);
 		final Rectangle2D rect = fm.getStringBounds(text, gg);
@@ -129,13 +150,13 @@ public enum FileFormat {
 	}
 
 	private StringBounder getBrailleStringBounder() {
-		return new StringBounder() {
+		return new StringBounderRaw() {
 			@Override
 			public String toString() {
 				return "FileFormat::getBrailleStringBounder";
 			}
 
-			public Dimension2D calculateDimension(UFont font, String text) {
+			protected Dimension2D calculateDimensionInternal(UFont font, String text) {
 				final int nb = BrailleCharFactory.build(text).size();
 				final double quanta = UGraphicBraille.QUANTA;
 				final double height = 5 * quanta;
@@ -146,13 +167,13 @@ public enum FileFormat {
 	}
 
 	private StringBounder getTikzStringBounder(final TikzFontDistortion tikzFontDistortion) {
-		return new StringBounder() {
+		return new StringBounderRaw() {
 			@Override
 			public String toString() {
 				return "FileFormat::getTikzStringBounder";
 			}
 
-			public Dimension2D calculateDimension(UFont font, String text) {
+			protected Dimension2D calculateDimensionInternal(UFont font, String text) {
 				final Dimension2DDouble w1 = getJavaDimension(font.goTikz(-1), text);
 				final Dimension2DDouble w2 = getJavaDimension(font.goTikz(0), text);
 				final Dimension2DDouble w3 = getJavaDimension(font.goTikz(1), text);

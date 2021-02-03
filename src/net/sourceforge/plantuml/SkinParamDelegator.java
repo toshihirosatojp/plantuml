@@ -53,11 +53,13 @@ import net.sourceforge.plantuml.style.StyleBuilder;
 import net.sourceforge.plantuml.svek.ConditionEndStyle;
 import net.sourceforge.plantuml.svek.ConditionStyle;
 import net.sourceforge.plantuml.svek.PackageStyle;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.ugraphic.UFont;
 import net.sourceforge.plantuml.ugraphic.UStroke;
 import net.sourceforge.plantuml.ugraphic.color.ColorMapper;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
 import net.sourceforge.plantuml.ugraphic.color.HColorSet;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
 
 public class SkinParamDelegator implements ISkinParam {
 
@@ -244,7 +246,7 @@ public class SkinParamDelegator implements ISkinParam {
 		return skinParam.getMonospacedFamily();
 	}
 
-	public Colors getColors(ColorParam param, Stereotype stereotype) {
+	public Colors getColors(ColorParam param, Stereotype stereotype) throws NoSuchColorException {
 		return skinParam.getColors(param, stereotype);
 	}
 
@@ -362,6 +364,18 @@ public class SkinParamDelegator implements ISkinParam {
 
 	public ActorStyle actorStyle() {
 		return skinParam.actorStyle();
+	}
+
+	public void setSvgSize(String origin, String sizeToUse) {
+		skinParam.setSvgSize(origin, sizeToUse);
+	}
+
+	public String transformStringForSizeHack(String s) {
+		return skinParam.transformStringForSizeHack(s);
+	}
+
+	public LengthAdjust getlengthAdjust() {
+		return skinParam.getlengthAdjust();
 	}
 
 }

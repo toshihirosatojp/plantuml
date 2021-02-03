@@ -42,7 +42,7 @@ import java.util.List;
 
 import net.sourceforge.plantuml.ColorParam;
 import net.sourceforge.plantuml.ISkinParam;
-import net.sourceforge.plantuml.SkinParam;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.activitydiagram3.ftile.AbstractConnection;
 import net.sourceforge.plantuml.activitydiagram3.ftile.Arrows;
 import net.sourceforge.plantuml.activitydiagram3.ftile.Connection;
@@ -80,7 +80,7 @@ public class ParallelBuilderMerge extends AbstractParallelFtilesBuilder {
 		for (Ftile tmp : list99) {
 			final Dimension2D dim = tmp.calculateDimension(getStringBounder());
 			final Rainbow def;
-			if (SkinParam.USE_STYLES()) {
+			if (UseStyle.useBetaStyle()) {
 				Style style = getDefaultStyleDefinition().getMergedStyle(skinParam().getCurrentStyleBuilder());
 				def = Rainbow.build(style, skinParam().getIHtmlColorSet());
 			} else {
@@ -112,7 +112,7 @@ public class ParallelBuilderMerge extends AbstractParallelFtilesBuilder {
 			final Dimension2D dim = tmp.calculateDimension(getStringBounder());
 			final UTranslate translate0 = new UTranslate(x, barHeight);
 			final Rainbow def;
-			if (SkinParam.USE_STYLES()) {
+			if (UseStyle.useBetaStyle()) {
 				Style style = getDefaultStyleDefinition().getMergedStyle(skinParam().getCurrentStyleBuilder());
 				def = Rainbow.build(style, skinParam().getIHtmlColorSet());
 			} else {
@@ -157,7 +157,7 @@ public class ParallelBuilderMerge extends AbstractParallelFtilesBuilder {
 			} else if (counter == 1) {
 				endDecoration = Arrows.asToLeft();
 			}
-			final Snake snake = new Snake(arrowHorizontalAlignment(), arrowColor, endDecoration);
+			final Snake snake = Snake.create(arrowColor, endDecoration);
 			snake.addPoint(x1, y1);
 			snake.addPoint(x1, y2);
 			snake.addPoint(x2, y2);
@@ -200,9 +200,9 @@ public class ParallelBuilderMerge extends AbstractParallelFtilesBuilder {
 		public void drawU(UGraphic ug) {
 			ug = ug.apply(UTranslate.dx(x));
 			final FtileGeometry geo = getFtile2().calculateDimension(getStringBounder());
-			final Snake snake = new Snake(arrowHorizontalAlignment(), arrowColor, Arrows.asToDown());
+			Snake snake = Snake.create(arrowColor, Arrows.asToDown());
 			if (Display.isNull(label) == false) {
-				snake.setLabel(getTextBlock(label));
+				snake = snake.withLabel(getTextBlock(label), arrowHorizontalAlignment());
 			}
 			snake.addPoint(geo.getLeft(), 0);
 			snake.addPoint(geo.getLeft(), geo.getInY());
@@ -215,9 +215,9 @@ public class ParallelBuilderMerge extends AbstractParallelFtilesBuilder {
 			final Point2D p1 = new Point2D.Double(geo.getLeft(), 0);
 			final Point2D p2 = new Point2D.Double(geo.getLeft(), geo.getInY());
 
-			final Snake snake = new Snake(arrowHorizontalAlignment(), arrowColor, Arrows.asToDown());
+			Snake snake = Snake.create(arrowColor, Arrows.asToDown());
 			if (Display.isNull(label) == false) {
-				snake.setLabel(getTextBlock(label));
+				snake = snake.withLabel(getTextBlock(label), arrowHorizontalAlignment());
 			}
 			final Point2D mp1a = translate1.getTranslated(p1);
 			final Point2D mp2b = translate2.getTranslated(p2);

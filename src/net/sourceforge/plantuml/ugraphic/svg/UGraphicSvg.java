@@ -41,11 +41,13 @@ import java.io.OutputStream;
 import javax.xml.transform.TransformerException;
 
 import net.sourceforge.plantuml.FileFormat;
+import net.sourceforge.plantuml.SvgCharSizeHack;
 import net.sourceforge.plantuml.TikzFontDistortion;
 import net.sourceforge.plantuml.Url;
 import net.sourceforge.plantuml.graphic.StringBounder;
 import net.sourceforge.plantuml.graphic.TextBlockUtils;
 import net.sourceforge.plantuml.posimo.DotPath;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.svg.SvgGraphics;
 import net.sourceforge.plantuml.ugraphic.AbstractCommonUGraphic;
 import net.sourceforge.plantuml.ugraphic.AbstractUGraphic;
@@ -88,22 +90,26 @@ public class UGraphicSvg extends AbstractUGraphic<SvgGraphics> implements ClipCo
 	}
 
 	public UGraphicSvg(boolean svgDimensionStyle, Dimension2D minDim, ColorMapper colorMapper, String backcolor,
-			boolean textAsPath, double scale, String linkTarget, String hover, long seed, String preserveAspectRatio) {
-		this(minDim, colorMapper,
-				new SvgGraphics(svgDimensionStyle, minDim, backcolor, scale, hover, seed, preserveAspectRatio),
-				textAsPath, linkTarget);
+			boolean textAsPath, double scale, String linkTarget, String hover, long seed, String preserveAspectRatio,
+			SvgCharSizeHack charSizeHack, LengthAdjust lengthAdjust) {
+		this(minDim, colorMapper, new SvgGraphics(svgDimensionStyle, minDim, backcolor, scale, hover, seed,
+				preserveAspectRatio, lengthAdjust), textAsPath, linkTarget, charSizeHack);
 	}
 
 	public UGraphicSvg(boolean svgDimensionStyle, Dimension2D minDim, ColorMapper colorMapper, boolean textAsPath,
-			double scale, String linkTarget, String hover, long seed, String preserveAspectRatio) {
-		this(minDim, colorMapper, new SvgGraphics(svgDimensionStyle, minDim, scale, hover, seed, preserveAspectRatio),
-				textAsPath, linkTarget);
+			double scale, String linkTarget, String hover, long seed, String preserveAspectRatio,
+			SvgCharSizeHack charSizeHack, LengthAdjust lengthAdjust) {
+		this(minDim, colorMapper,
+				new SvgGraphics(svgDimensionStyle, minDim, scale, hover, seed, preserveAspectRatio, lengthAdjust),
+				textAsPath, linkTarget, charSizeHack);
 	}
 
 	public UGraphicSvg(boolean svgDimensionStyle, Dimension2D minDim, ColorMapper mapper, HColorGradient gr,
-			boolean textAsPath, double scale, String linkTarget, String hover, long seed, String preserveAspectRatio) {
-		this(minDim, mapper, new SvgGraphics(svgDimensionStyle, minDim, scale, hover, seed, preserveAspectRatio),
-				textAsPath, linkTarget);
+			boolean textAsPath, double scale, String linkTarget, String hover, long seed, String preserveAspectRatio,
+			SvgCharSizeHack charSizeHack, LengthAdjust lengthAdjust) {
+		this(minDim, mapper,
+				new SvgGraphics(svgDimensionStyle, minDim, scale, hover, seed, preserveAspectRatio, lengthAdjust),
+				textAsPath, linkTarget, charSizeHack);
 
 		final SvgGraphics svg = getGraphicObject();
 		svg.paintBackcolorGradient(mapper, gr);
@@ -125,9 +131,9 @@ public class UGraphicSvg extends AbstractUGraphic<SvgGraphics> implements ClipCo
 	}
 
 	private UGraphicSvg(Dimension2D minDim, ColorMapper colorMapper, SvgGraphics svg, boolean textAsPath,
-			String linkTarget) {
+			String linkTarget, SvgCharSizeHack charSizeHack) {
 		super(colorMapper, svg);
-		this.stringBounder = FileFormat.PNG.getDefaultStringBounder(TikzFontDistortion.getDefault());
+		this.stringBounder = FileFormat.SVG.getDefaultStringBounder(TikzFontDistortion.getDefault(), charSizeHack);
 		this.textAsPath2 = textAsPath;
 		this.target = linkTarget;
 		register();
@@ -179,7 +185,6 @@ public class UGraphicSvg extends AbstractUGraphic<SvgGraphics> implements ClipCo
 	public void closeGroup() {
 		getGraphicObject().closeGroup();
 	}
-
 
 	@Override
 	public void startUrl(Url url) {

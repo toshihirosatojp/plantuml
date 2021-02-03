@@ -59,6 +59,8 @@ import net.sourceforge.plantuml.graphic.TextBlockUtils;
 import net.sourceforge.plantuml.graphic.UDrawable;
 import net.sourceforge.plantuml.security.ImageIO;
 import net.sourceforge.plantuml.security.SFile;
+import net.sourceforge.plantuml.style.ClockwiseTopRightBottomLeft;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.svg.SvgGraphics;
 import net.sourceforge.plantuml.ugraphic.color.ColorMapperIdentity;
 import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
@@ -66,15 +68,15 @@ import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
 public class FontChecker {
 
 	final private UFont font;
-	private static final Set<String> SQUARRE = new HashSet<String>(Arrays.asList("MI=I=XM=I=IX",
-			"MI=I=XM=I=IXMI=I=XM=I=IX"));
+	private static final Set<String> SQUARE = new HashSet<String>(
+			Arrays.asList("MI=I=XM=I=IX", "MI=I=XM=I=IXMI=I=XM=I=IX"));
 
 	public FontChecker(UFont font) {
 		this.font = font;
 	}
 
 	public boolean isCharOk(char c) {
-		return SQUARRE.contains(getCharDesc(c)) == false;
+		return SQUARE.contains(getCharDesc(c)) == false;
 	}
 
 	static private String getType(int type, double oldX, double oldY, double x, double y) {
@@ -158,7 +160,8 @@ public class FontChecker {
 	}
 
 	private String getSvgImage(char c) throws IOException, TransformerException {
-		final SvgGraphics svg = new SvgGraphics(true, new Dimension2DDouble(0, 0), 1.0, null, 42, "none");
+		final SvgGraphics svg = new SvgGraphics(true, new Dimension2DDouble(0, 0), 1.0, null, 42, "none",
+				LengthAdjust.defaultValue());
 		svg.setStrokeColor("black");
 		svg.svgImage(getBufferedImage(c), 0, 0);
 		final ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -169,8 +172,9 @@ public class FontChecker {
 
 	public BufferedImage getBufferedImage(final char c) throws IOException {
 		assert c != '\t';
-		final ImageBuilder imageBuilder = ImageBuilder.buildA(new ColorMapperIdentity(), false, null, null, null, 1,
-				null);
+		final ImageParameter imageParameter = new ImageParameter(new ColorMapperIdentity(), false, null, 1.0, null,
+				null, ClockwiseTopRightBottomLeft.none(), null);
+		final ImageBuilder imageBuilder = ImageBuilder.build(imageParameter);
 		final double dim = 20;
 		imageBuilder.setUDrawable(new UDrawable() {
 			public void drawU(UGraphic ug) {
@@ -191,11 +195,13 @@ public class FontChecker {
 
 	// public BufferedImage getBufferedImageOld(char c) throws IOException {
 	// final double dim = 20;
-	// UGraphic2 ug = new FileFormatOption(FileFormat.PNG).createUGraphic(new Dimension2DDouble(dim, dim));
+	// UGraphic2 ug = new FileFormatOption(FileFormat.PNG).createUGraphic(new
+	// Dimension2DDouble(dim, dim));
 	// ug = (UGraphic2) ug.apply(UChangeColor.nnn(HtmlColorUtils.BLACK));
 	// ug.draw(new URectangle(dim - 1, dim - 1));
 	// ug = (UGraphic2) ug.apply(new UTranslate(dim / 3, 2 * dim / 3));
-	// final UText text = new UText("" + c, new FontConfiguration(font, HtmlColorUtils.BLACK));
+	// final UText text = new UText("" + c, new FontConfiguration(font,
+	// HtmlColorUtils.BLACK));
 	// ug.draw(text);
 	// final ByteArrayOutputStream os = new ByteArrayOutputStream();
 	// ug.writeImageTOBEMOVED(os, null, 96);

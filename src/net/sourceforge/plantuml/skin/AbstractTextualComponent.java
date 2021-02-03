@@ -41,9 +41,9 @@ import net.sourceforge.plantuml.FontParam;
 import net.sourceforge.plantuml.ISkinParam;
 import net.sourceforge.plantuml.ISkinSimple;
 import net.sourceforge.plantuml.LineBreakStrategy;
-import net.sourceforge.plantuml.SkinParam;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.creole.CreoleMode;
-import net.sourceforge.plantuml.cucadiagram.BodyEnhanced2;
+import net.sourceforge.plantuml.cucadiagram.BodyFactory;
 import net.sourceforge.plantuml.cucadiagram.Display;
 import net.sourceforge.plantuml.graphic.FontConfiguration;
 import net.sourceforge.plantuml.graphic.HorizontalAlignment;
@@ -90,7 +90,7 @@ public abstract class AbstractTextualComponent extends AbstractComponent {
 			ISkinSimple spriteContainer, boolean enhanced, UFont fontForStereotype, HColor htmlColorForStereotype) {
 		super(style);
 		this.spriteContainer = spriteContainer;
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			fc = style.getFontConfiguration(getIHtmlColorSet());
 			this.font = style.getUFont();
 			this.fontColor = style.value(PName.FontColor).asColor(getIHtmlColorSet());
@@ -111,7 +111,7 @@ public abstract class AbstractTextualComponent extends AbstractComponent {
 		if (this.display.size() == 1 && this.display.get(0).length() == 0) {
 			textBlock = new TextBlockEmpty();
 		} else if (enhanced) {
-			textBlock = new BodyEnhanced2(this.display, FontParam.NOTE, spriteContainer, horizontalAlignment, fc,
+			textBlock = BodyFactory.create3(this.display, FontParam.NOTE, spriteContainer, horizontalAlignment, fc,
 					maxMessageSize);
 		} else {
 			textBlock = this.display.create0(fc, horizontalAlignment, spriteContainer, maxMessageSize, CreoleMode.FULL,

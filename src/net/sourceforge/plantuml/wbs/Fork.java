@@ -53,13 +53,13 @@ class Fork extends WBSTextBlock {
 	private final List<ITF> right = new ArrayList<ITF>();
 
 	public Fork(ISkinParam skinParam, WElement idea) {
-		super(skinParam, idea.getStyleBuilder(), idea.getLevel());
+		super(idea.withBackColor(skinParam), idea.getStyleBuilder(), idea.getLevel());
 		if (idea.getLevel() != 0) {
 			throw new IllegalArgumentException();
 		}
 		this.main = buildMain(idea);
 		for (WElement child : idea.getChildren(Direction.RIGHT)) {
-			this.right.add(ITFComposed.build2(skinParam, child));
+			this.right.add(ITFComposed.build2(child.withBackColor(skinParam), child));
 		}
 	}
 
@@ -72,8 +72,8 @@ class Fork extends WBSTextBlock {
 		final Dimension2D mainDim = main.calculateDimension(stringBounder);
 		final double dx = (fullDim.getWidth() - mainDim.getWidth()) / 2;
 		main.drawU(ug.apply(UTranslate.dx(dx)));
-		drawLine(ug, dx + mainDim.getWidth() / 2, mainDim.getHeight(), dx + mainDim.getWidth() / 2, mainDim.getHeight()
-				+ deltay / 2);
+		drawLine(ug, dx + mainDim.getWidth() / 2, mainDim.getHeight(), dx + mainDim.getWidth() / 2,
+				mainDim.getHeight() + deltay / 2);
 		double x = 0;
 		final double y = mainDim.getHeight() + deltay;
 		if (right.size() == 0) {
@@ -102,6 +102,7 @@ class Fork extends WBSTextBlock {
 		}
 		final Dimension2D mainDim = main.calculateDimension(stringBounder);
 		height += mainDim.getHeight();
+		height += deltay;
 		width = Math.max(width, mainDim.getWidth());
 		return new Dimension2DDouble(width, height);
 	}

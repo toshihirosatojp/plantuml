@@ -39,9 +39,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import net.sourceforge.plantuml.FileFormatOption;
+import net.sourceforge.plantuml.ISkinParam;
 import net.sourceforge.plantuml.ISkinSimple;
 import net.sourceforge.plantuml.SkinParam;
 import net.sourceforge.plantuml.UmlDiagramType;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.core.ImageData;
 import net.sourceforge.plantuml.creole.CreoleMode;
 import net.sourceforge.plantuml.cucadiagram.Code;
@@ -59,11 +61,13 @@ import net.sourceforge.plantuml.objectdiagram.AbstractClassOrObjectDiagram;
 import net.sourceforge.plantuml.style.ClockwiseTopRightBottomLeft;
 import net.sourceforge.plantuml.svek.image.EntityImageClass;
 import net.sourceforge.plantuml.ugraphic.ImageBuilder;
+import net.sourceforge.plantuml.ugraphic.ImageParameter;
+import net.sourceforge.plantuml.ugraphic.color.HColor;
 
 public class ClassDiagram extends AbstractClassOrObjectDiagram {
 
 	public ClassDiagram(ISkinSimple skinParam) {
-		super(skinParam);
+		super(UmlDiagramType.CLASS, skinParam);
 	}
 
 	private Code getShortName1972(Code code) {
@@ -166,11 +170,6 @@ public class ClassDiagram extends AbstractClassOrObjectDiagram {
 		return super.leafExist(getFullyQualifiedCode1972(code));
 	}
 
-	@Override
-	public UmlDiagramType getUmlDiagramType() {
-		return UmlDiagramType.CLASS;
-	}
-
 	private boolean allowMixing;
 
 	public void setAllowMixing(boolean allowMixing) {
@@ -206,15 +205,18 @@ public class ClassDiagram extends AbstractClassOrObjectDiagram {
 		}
 		final int margin1;
 		final int margin2;
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			margin1 = SkinParam.zeroMargin(0);
-			margin2 = SkinParam.zeroMargin(10);
+			margin2 = SkinParam.zeroMargin(0);
 		} else {
 			margin1 = 0;
-			margin2 = 10;
+			margin2 = 0;
 		}
-		final ImageBuilder imageBuilder = ImageBuilder.buildD(getSkinParam(),
-				ClockwiseTopRightBottomLeft.margin1margin2(margin1, margin2), null, null, null, 1);
+		ISkinParam skinParam = getSkinParam();
+		final HColor backcolor = skinParam.getBackgroundColor(false);
+		final ClockwiseTopRightBottomLeft margins = ClockwiseTopRightBottomLeft.margin1margin2(margin1, margin2);
+		final ImageParameter imageParameter = new ImageParameter(skinParam, null, 1.0, null, null, margins, backcolor);
+		final ImageBuilder imageBuilder = ImageBuilder.build(imageParameter);
 		imageBuilder.setUDrawable(fullLayout);
 		return imageBuilder.writeImageTOBEMOVED(fileFormatOption, seed(), os);
 	}

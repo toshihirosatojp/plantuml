@@ -45,6 +45,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -72,6 +73,7 @@ import net.sourceforge.plantuml.style.StyleLoader;
 import net.sourceforge.plantuml.svek.ConditionEndStyle;
 import net.sourceforge.plantuml.svek.ConditionStyle;
 import net.sourceforge.plantuml.svek.PackageStyle;
+import net.sourceforge.plantuml.svg.LengthAdjust;
 import net.sourceforge.plantuml.ugraphic.UFont;
 import net.sourceforge.plantuml.ugraphic.UStroke;
 import net.sourceforge.plantuml.ugraphic.color.ColorMapper;
@@ -83,21 +85,38 @@ import net.sourceforge.plantuml.ugraphic.color.ColorOrder;
 import net.sourceforge.plantuml.ugraphic.color.HColor;
 import net.sourceforge.plantuml.ugraphic.color.HColorSet;
 import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
 
 public class SkinParam implements ISkinParam {
 
 	// private String skin = "debug.skin";
 
 	private String skin = "plantuml.skin";
+	private StyleBuilder styleBuilder;
 
 	private SkinParam(UmlDiagramType type) {
-		USE_STYLE2.set(false);
+		UseStyle.setBetaStyle(false);
 		this.type = type;
 		if (type == UmlDiagramType.MINDMAP) {
-			USE_STYLE2.set(true);
+			UseStyle.setBetaStyle(true);
 		}
 		if (type == UmlDiagramType.WBS) {
-			USE_STYLE2.set(true);
+			UseStyle.setBetaStyle(true);
+		}
+		if (type == UmlDiagramType.GANTT) {
+			UseStyle.setBetaStyle(true);
+		}
+		if (type == UmlDiagramType.JSON) {
+			UseStyle.setBetaStyle(true);
+		}
+		if (type == UmlDiagramType.GIT) {
+			UseStyle.setBetaStyle(true);
+		}
+		if (type == UmlDiagramType.BOARD) {
+			UseStyle.setBetaStyle(true);
+		}
+		if (type == UmlDiagramType.YAML) {
+			UseStyle.setBetaStyle(true);
 		}
 		if (type == UmlDiagramType.SEQUENCE) {
 			// skin = "debug.skin";
@@ -109,10 +128,8 @@ public class SkinParam implements ISkinParam {
 		// }
 	}
 
-	private StyleBuilder styleBuilder;
-
 	public StyleBuilder getCurrentStyleBuilder() {
-		if (styleBuilder == null && SkinParam.USE_STYLES()) {
+		if (styleBuilder == null && UseStyle.useBetaStyle()) {
 			try {
 				this.styleBuilder = getCurrentStyleBuilderInternal();
 			} catch (IOException e) {
@@ -123,7 +140,7 @@ public class SkinParam implements ISkinParam {
 	}
 
 	public void muteStyle(Style modifiedStyle) {
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			styleBuilder = getCurrentStyleBuilder().muteStyle(modifiedStyle);
 		}
 	}
@@ -146,20 +163,6 @@ public class SkinParam implements ISkinParam {
 		return result;
 	}
 
-	private static ThreadLocal<Boolean> USE_STYLE2 = new ThreadLocal<Boolean>();
-
-	static public boolean USE_STYLES() {
-		final Boolean result = USE_STYLE2.get();
-		if (result == null) {
-			return false;
-		}
-		return result;
-	}
-
-	static public void setBetaStyle(boolean betastyle) {
-		USE_STYLE2.set(betastyle);
-	}
-
 	public static int zeroMargin(int defaultValue) {
 		return defaultValue;
 	}
@@ -168,6 +171,7 @@ public class SkinParam implements ISkinParam {
 	private static final Pattern2 stereoPattern = MyPattern.cmpile(stereoPatternString);
 
 	private final Map<String, String> params = new HashMap<String, String>();
+	private final Map<String, String> svgCharSizes = new HashMap<String, String>();
 	private Rankdir rankdir = Rankdir.TOP_TO_BOTTOM;
 	private final UmlDiagramType type;
 	private boolean useVizJs;
@@ -185,9 +189,9 @@ public class SkinParam implements ISkinParam {
 			params.put(key2, StringUtils.trin(value));
 			if (key2.startsWith("usebetastyle")) {
 				final boolean betastyle = "true".equalsIgnoreCase(value);
-				setBetaStyle(betastyle);
+				UseStyle.setBetaStyle(betastyle);
 			}
-			if (USE_STYLES()) {
+			if (UseStyle.useBetaStyle()) {
 				final FromSkinparamToStyle convertor = new FromSkinparamToStyle(key2, value, getCurrentStyleBuilder());
 				for (Style style : convertor.getStyles()) {
 					muteStyle(style);
@@ -195,7 +199,7 @@ public class SkinParam implements ISkinParam {
 			}
 		}
 		if ("style".equalsIgnoreCase(key) && "strictuml".equalsIgnoreCase(value)) {
-			if (USE_STYLES()) {
+			if (UseStyle.useBetaStyle()) {
 				final InputStream internalIs = StyleLoader.class.getResourceAsStream("/skin/strictuml.skin");
 				final StyleBuilder styleBuilder = this.getCurrentStyleBuilder();
 				try {
@@ -313,8 +317,8 @@ public class SkinParam implements ISkinParam {
 			checkStereotype(stereotype);
 			for (String s : stereotype.getMultipleLabels()) {
 				final String value2 = getValue(param.name() + "color" + "<<" + s + ">>");
-				if (value2 != null && getIHtmlColorSet().getColorIfValid(value2) != null) {
-					return getIHtmlColorSet().getColorIfValid(value2);
+				if (value2 != null && getIHtmlColorSet().getColorOrWhite(value2) != null) {
+					return getIHtmlColorSet().getColorOrWhite(value2);
 				}
 			}
 		}
@@ -327,12 +331,12 @@ public class SkinParam implements ISkinParam {
 			return HColorUtils.transparent();
 		}
 		if (param == ColorParam.background) {
-			return getIHtmlColorSet().getColorIfValid(value);
+			return getIHtmlColorSet().getColorOrWhite(value);
 		}
 		assert param != ColorParam.background;
 //		final boolean acceptTransparent = param == ColorParam.background
 //				|| param == ColorParam.sequenceGroupBodyBackground || param == ColorParam.sequenceBoxBackground;
-		return getIHtmlColorSet().getColorIfValid(value, getBackgroundColor(false));
+		return getIHtmlColorSet().getColorOrWhite(value, getBackgroundColor(false));
 	}
 
 	public char getCircledCharacter(Stereotype stereotype) {
@@ -346,11 +350,11 @@ public class SkinParam implements ISkinParam {
 		return 0;
 	}
 
-	public Colors getColors(ColorParam param, Stereotype stereotype) {
+	public Colors getColors(ColorParam param, Stereotype stereotype) throws NoSuchColorException {
 		if (stereotype != null) {
 			checkStereotype(stereotype);
 			final String value2 = getValue(param.name() + "color" + stereotype.getLabel(Guillemet.DOUBLE_COMPARATOR));
-			if (value2 != null && getIHtmlColorSet().getColorIfValid(value2) != null) {
+			if (value2 != null) {
 				return new Colors(value2, getIHtmlColorSet(), param.getColorType());
 			}
 		}
@@ -427,16 +431,19 @@ public class SkinParam implements ISkinParam {
 			value = getFirstValueNonNullWithSuffix("fontcolor" + stereotype.getLabel(Guillemet.DOUBLE_COMPARATOR),
 					param);
 		}
-		if (value == null || getIHtmlColorSet().getColorIfValid(value) == null) {
+		if (value == null) {
 			value = getFirstValueNonNullWithSuffix("fontcolor", param);
 		}
-		if (value == null || getIHtmlColorSet().getColorIfValid(value) == null) {
+		if (value == null) {
 			value = getValue("defaultfontcolor");
 		}
-		if (value == null || getIHtmlColorSet().getColorIfValid(value) == null) {
+		if (value == null) {
 			value = param[0].getDefaultColor();
 		}
-		return getIHtmlColorSet().getColorIfValid(value);
+		if (value == null) {
+			return null;
+		}
+		return getIHtmlColorSet().getColorOrWhite(value);
 	}
 
 	private String getFirstValueNonNullWithSuffix(String suffix, FontParam... param) {
@@ -978,7 +985,7 @@ public class SkinParam implements ISkinParam {
 		final String value = getValue("conditionStyle");
 		final ConditionStyle p = ConditionStyle.fromString(value);
 		if (p == null) {
-			return ConditionStyle.INSIDE;
+			return ConditionStyle.INSIDE_HEXAGON;
 		}
 		return p;
 	}
@@ -1127,8 +1134,9 @@ public class SkinParam implements ISkinParam {
 			margin = Integer.parseInt(marginString);
 		}
 
-		return new SplitParam(getIHtmlColorSet().getColorIfValid(border), getIHtmlColorSet().getColorIfValid(external),
-				margin);
+		final HColor borderColor = border == null ? null : getIHtmlColorSet().getColorOrWhite(border);
+		final HColor externalColor = external == null ? null : getIHtmlColorSet().getColorOrWhite(external);
+		return new SplitParam(borderColor, externalColor, margin);
 	}
 
 	public int swimlaneWidth() {
@@ -1151,7 +1159,7 @@ public class SkinParam implements ISkinParam {
 		if (value == null) {
 			return null;
 		}
-		return getIHtmlColorSet().getColorIfValid(value, null);
+		return getIHtmlColorSet().getColorOrWhite(value, null);
 	}
 
 	public double getPadding() {
@@ -1229,8 +1237,8 @@ public class SkinParam implements ISkinParam {
 		if (padding == 0 && margin == 0 && borderColor == null && backgroundColor == null) {
 			return Padder.NONE;
 		}
-		final HColor border = getIHtmlColorSet().getColorIfValid(borderColor);
-		final HColor background = getIHtmlColorSet().getColorIfValid(backgroundColor);
+		final HColor border = borderColor == null ? null : getIHtmlColorSet().getColorOrWhite(borderColor);
+		final HColor background = backgroundColor == null ? null : getIHtmlColorSet().getColorOrWhite(backgroundColor);
 		final double roundCorner = getRoundCorner(CornerParam.DEFAULT, null);
 		return Padder.NONE.withMargin(margin).withPadding(padding).withBackgroundColor(background)
 				.withBorderColor(border).withRoundCorner(roundCorner);
@@ -1241,7 +1249,36 @@ public class SkinParam implements ISkinParam {
 		if ("awesome".equalsIgnoreCase(value)) {
 			return ActorStyle.AWESOME;
 		}
+		if ("hollow".equalsIgnoreCase(value)) {
+			return ActorStyle.HOLLOW;
+		}
 		return ActorStyle.STICKMAN;
+	}
+
+	public void setSvgSize(String origin, String sizeToUse) {
+		svgCharSizes.put(StringUtils.manageUnicodeNotationUplus(origin),
+				StringUtils.manageUnicodeNotationUplus(sizeToUse));
+	}
+
+	public String transformStringForSizeHack(String s) {
+		for (Entry<String, String> ent : svgCharSizes.entrySet()) {
+			s = s.replace(ent.getKey(), ent.getValue());
+		}
+		return s;
+	}
+
+	public LengthAdjust getlengthAdjust() {
+		final String value = getValue("lengthAdjust");
+		if ("spacingAndGlyphs".equalsIgnoreCase(value)) {
+			return LengthAdjust.SPACING_AND_GLYPHS;
+		}
+		if ("spacing".equalsIgnoreCase(value)) {
+			return LengthAdjust.SPACING;
+		}
+		if ("none".equalsIgnoreCase(value)) {
+			return LengthAdjust.NONE;
+		}
+		return LengthAdjust.defaultValue();
 	}
 
 }

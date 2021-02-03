@@ -59,7 +59,6 @@ public enum SName {
 	componentDiagram, //
 	control, //
 	database, //
-	databse, //
 	delay, //
 	destroy, //
 	diamond, //
@@ -70,13 +69,18 @@ public enum SName {
 	folder, //
 	footer, //
 	frame, //
+	ganttDiagram, //
 	group, //
 	groupHeader, //
 	header, //
 	interface_, //
+	jsonDiagram, //
+	gitDiagram, //
+	label, //
 	leafNode, //
 	legend, //
 	lifeLine, //
+	milestone, //
 	mindmapDiagram, //
 	node, //
 	note, //
@@ -90,6 +94,7 @@ public enum SName {
 	referenceHeader, //
 	root, //
 	rootNode, //
+	saltDiagram, //
 	separator, //
 	sequenceDiagram, //
 	stack, //
@@ -97,6 +102,7 @@ public enum SName {
 	stereotype, //
 	storage, //
 	swimlane, //
+	task, //
 	title, //
 	usecase, //
 	wbsDiagram; //

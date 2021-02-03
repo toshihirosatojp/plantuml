@@ -43,7 +43,6 @@ import net.sourceforge.plantuml.core.Diagram;
 import net.sourceforge.plantuml.cucadiagram.dot.GraphvizUtils;
 import net.sourceforge.plantuml.security.SFile;
 import net.sourceforge.plantuml.security.SecurityUtils;
-import net.sourceforge.plantuml.ugraphic.ImageBuilder;
 
 public class OptionFlags {
 
@@ -60,7 +59,6 @@ public class OptionFlags {
 	}
 
 	static public void setMaxPixel(int max) {
-		ImageBuilder.setMaxPixel(max);
 	}
 
 	static public final boolean USE_HECTOR = false;

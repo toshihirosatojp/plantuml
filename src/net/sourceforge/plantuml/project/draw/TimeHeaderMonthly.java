@@ -41,9 +41,8 @@ import net.sourceforge.plantuml.graphic.TextBlock;
 import net.sourceforge.plantuml.project.LoadPlanable;
 import net.sourceforge.plantuml.project.core.PrintScale;
 import net.sourceforge.plantuml.project.time.Day;
-import net.sourceforge.plantuml.project.time.GCalendar;
+import net.sourceforge.plantuml.project.time.DayOfWeek;
 import net.sourceforge.plantuml.project.time.MonthYear;
-import net.sourceforge.plantuml.project.time.Wink;
 import net.sourceforge.plantuml.project.timescale.TimeScaleCompressed;
 import net.sourceforge.plantuml.ugraphic.UGraphic;
 import net.sourceforge.plantuml.ugraphic.ULine;
@@ -53,82 +52,88 @@ import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
 
 public class TimeHeaderMonthly extends TimeHeader {
 
-	private double getTimeHeaderHeight() {
-		return Y_POS_ROW16 + 13;
+	protected double getTimeHeaderHeight() {
+		return 16 + 13;
 	}
 
-	private final GCalendar calendar;
+	public double getTimeFooterHeight() {
+		return 16 + 13 - 1;
+	}
 
-	public TimeHeaderMonthly(GCalendar calendar, Wink min, Wink max, LoadPlanable defaultPlan,
-			Map<Day, HColor> colorDays, Map<Day, String> nameDays) {
+	public TimeHeaderMonthly(Day calendar, Day min, Day max, LoadPlanable defaultPlan, Map<Day, HColor> colorDays,
+			Map<DayOfWeek, HColor> colorDaysOfWeek, Map<Day, String> nameDays) {
 		super(min, max, new TimeScaleCompressed(calendar, PrintScale.MONTHLY.getCompress()));
-		this.calendar = calendar;
 	}
 
 	@Override
-	public void drawTimeHeader(final UGraphic ug, double totalHeight) {
-		drawCalendar(ug, totalHeight);
+	public void drawTimeHeader(final UGraphic ug, double totalHeightWithoutFooter) {
+		drawYears(ug);
+		drawMonths(ug.apply(UTranslate.dy(16)));
 		drawHline(ug, 0);
-		drawHline(ug, Y_POS_ROW16);
+		drawHline(ug, 16);
 		drawHline(ug, getFullHeaderHeight());
-
 	}
 
-	private void drawCalendar(final UGraphic ug, double totalHeight) {
-		drawYears(ug);
+	@Override
+	public void drawTimeFooter(UGraphic ug) {
+		ug = ug.apply(UTranslate.dy(3));
 		drawMonths(ug);
+		drawYears(ug.apply(UTranslate.dy(13)));
+		drawHline(ug, 0);
+		drawHline(ug, 13);
+		drawHline(ug, getTimeFooterHeight());
 	}
 
 	private void drawYears(final UGraphic ug) {
 		MonthYear last = null;
 		double lastChange = -1;
-		for (Wink wink = min; wink.compareTo(max) < 0; wink = wink.increment()) {
-			final Day day = calendar.toDayAsDate(wink);
+		for (Day wink = min; wink.compareTo(max) < 0; wink = wink.increment()) {
 			final double x1 = getTimeScale().getStartingPosition(wink);
-			if (last == null || day.monthYear().year() != last.year()) {
-				drawVbar(ug, x1, 0, Y_POS_ROW16);
+			if (last == null || wink.monthYear().year() != last.year()) {
+				drawVbar(ug, x1, 0, 15);
 				if (last != null) {
 					printYear(ug, last, lastChange, x1);
 				}
 				lastChange = x1;
-				last = day.monthYear();
+				last = wink.monthYear();
 			}
 		}
 		final double x1 = getTimeScale().getStartingPosition(max.increment());
 		if (x1 > lastChange) {
 			printYear(ug, last, lastChange, x1);
 		}
+		drawVbar(ug, getTimeScale().getEndingPosition(max), 0, 15);
 	}
 
-	private void drawMonths(final UGraphic ug) {
+	private void drawMonths(UGraphic ug) {
 		MonthYear last = null;
 		double lastChange = -1;
-		for (Wink wink = min; wink.compareTo(max) < 0; wink = wink.increment()) {
-			final Day day = calendar.toDayAsDate(wink);
+		for (Day wink = min; wink.compareTo(max) < 0; wink = wink.increment()) {
 			final double x1 = getTimeScale().getStartingPosition(wink);
-			if (day.monthYear().equals(last) == false) {
-				drawVbar(ug, x1, Y_POS_ROW16, Y_POS_ROW28);
+			if (wink.monthYear().equals(last) == false) {
+				drawVbar(ug, x1, 0, 12);
 				if (last != null) {
-					printMonth(ug.apply(UTranslate.dy(Y_POS_ROW16)), last, lastChange, x1);
+					printMonth(ug, last, lastChange, x1);
 				}
 				lastChange = x1;
-				last = day.monthYear();
+				last = wink.monthYear();
 			}
 		}
 		final double x1 = getTimeScale().getStartingPosition(max.increment());
 		if (x1 > lastChange) {
-			printMonth(ug.apply(UTranslate.dy(Y_POS_ROW16)), last, lastChange, x1);
+			printMonth(ug, last, lastChange, x1);
 		}
+		drawVbar(ug, getTimeScale().getEndingPosition(max), 0, 12);
 	}
 
 	private void printYear(UGraphic ug, MonthYear monthYear, double start, double end) {
-		final TextBlock small = getTextBlock("" + monthYear.year(), 12, true);
+		final TextBlock small = getTextBlock("" + monthYear.year(), 12, true, HColorUtils.BLACK);
 		printCentered(ug, start, end, small);
 	}
 
 	private void printMonth(UGraphic ug, MonthYear monthYear, double start, double end) {
-		final TextBlock small = getTextBlock(monthYear.shortName(), 10, false);
-		final TextBlock big = getTextBlock(monthYear.longName(), 10, false);
+		final TextBlock small = getTextBlock(monthYear.shortName(), 10, false, HColorUtils.BLACK);
+		final TextBlock big = getTextBlock(monthYear.longName(), 10, false, HColorUtils.BLACK);
 		printCentered(ug, start, end, small, big);
 	}
 

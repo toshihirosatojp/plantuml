@@ -35,6 +35,8 @@
  */
 package net.sourceforge.plantuml.activitydiagram3;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import net.sourceforge.plantuml.activitydiagram3.ftile.BoxStyle;
@@ -50,7 +52,7 @@ import net.sourceforge.plantuml.ugraphic.color.HColor;
 
 public class InstructionRepeat implements Instruction {
 
-	private final InstructionList repeatList = new InstructionList();
+	private final InstructionList repeatList;
 	private final Instruction parent;
 	private final LinkRendering nextLinkRenderer;
 	private final Swimlane swimlane;
@@ -60,13 +62,17 @@ public class InstructionRepeat implements Instruction {
 	private final BoxStyle boxStyleIn;
 
 	private Display backward = Display.NULL;
+
+	private LinkRendering incoming1 = LinkRendering.none();
+	private LinkRendering incoming2 = LinkRendering.none();
+	private List<PositionedNote> backwardNotes = new ArrayList<PositionedNote>();
 	private Display test = Display.NULL;
 	private Display yes = Display.NULL;
 	private Display out = Display.NULL;
 	private final Display startLabel;
 	private boolean testCalled = false;
 	private LinkRendering endRepeatLinkRendering = LinkRendering.none();
-	private LinkRendering backRepeatLinkRendering = LinkRendering.none();
+
 	private final Colors colors;
 
 	public boolean containsBreak() {
@@ -75,6 +81,7 @@ public class InstructionRepeat implements Instruction {
 
 	public InstructionRepeat(Swimlane swimlane, Instruction parent, LinkRendering nextLinkRenderer, HColor color,
 			Display startLabel, BoxStyle boxStyleIn, Colors colors) {
+		this.repeatList = new InstructionList(swimlane);
 		this.boxStyleIn = boxStyleIn;
 		this.startLabel = startLabel;
 		this.parent = parent;
@@ -93,10 +100,17 @@ public class InstructionRepeat implements Instruction {
 		return false;
 	}
 
-	public void setBackward(Display label, Swimlane swimlaneOut, BoxStyle boxStyle) {
+	public void setBackward(Display label, Swimlane swimlaneOut, BoxStyle boxStyle, LinkRendering incoming1,
+			LinkRendering incoming2) {
 		this.backward = label;
 		this.swimlaneOut = swimlaneOut;
 		this.boxStyle = boxStyle;
+		this.incoming1 = incoming1;
+		this.incoming2 = incoming2;
+	}
+
+	public boolean hasBackward() {
+		return this.backward != Display.NULL;
 	}
 
 	public void add(Instruction ins) {
@@ -104,13 +118,23 @@ public class InstructionRepeat implements Instruction {
 	}
 
 	public Ftile createFtile(FtileFactory factory) {
-		final Ftile back = Display.isNull(backward) ? null
-				: factory.activity(backward, swimlane, boxStyle, Colors.empty());
+		final Ftile back = getBackward(factory);
 		final Ftile decorateOut = factory.decorateOut(repeatList.createFtile(factory), endRepeatLinkRendering);
 		final Ftile result = factory.repeat(boxStyleIn, swimlane, swimlaneOut, startLabel, decorateOut, test, yes, out,
-				colors, backRepeatLinkRendering, back, isLastOfTheParent());
+				colors, back, isLastOfTheParent(), incoming1, incoming2);
 		if (killed) {
 			return new FtileKilled(result);
+		}
+		return result;
+	}
+
+	private Ftile getBackward(FtileFactory factory) {
+		if (Display.isNull(backward)) {
+			return null;
+		}
+		Ftile result = factory.activity(backward, swimlane, boxStyle, Colors.empty(), null);
+		if (backwardNotes.size() > 0) {
+			result = factory.addNote(result, swimlane, backwardNotes);
 		}
 		return result;
 	}
@@ -120,7 +144,7 @@ public class InstructionRepeat implements Instruction {
 	}
 
 	public void setTest(Display test, Display yes, Display out, LinkRendering endRepeatLinkRendering,
-			LinkRendering backRepeatLinkRendering, Swimlane swimlaneOut) {
+			LinkRendering back, Swimlane swimlaneOut) {
 		this.swimlaneOut = swimlaneOut;
 		this.test = test;
 		this.yes = yes;
@@ -135,7 +159,8 @@ public class InstructionRepeat implements Instruction {
 			throw new IllegalArgumentException();
 		}
 		this.endRepeatLinkRendering = endRepeatLinkRendering;
-		this.backRepeatLinkRendering = backRepeatLinkRendering;
+		if (back.isNone() == false)
+			this.incoming1 = back;
 		this.testCalled = true;
 	}
 
@@ -152,7 +177,12 @@ public class InstructionRepeat implements Instruction {
 	}
 
 	public boolean addNote(Display note, NotePosition position, NoteType type, Colors colors, Swimlane swimlaneNote) {
-		return repeatList.addNote(note, position, type, colors, swimlaneNote);
+		if (Display.isNull(backward)) {
+			return repeatList.addNote(note, position, type, colors, swimlaneNote);
+		}
+		this.backwardNotes.add(new PositionedNote(note, position, type, colors, swimlaneNote));
+		return true;
+
 	}
 
 	public Set<Swimlane> getSwimlanes() {

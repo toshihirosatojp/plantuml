@@ -175,6 +175,24 @@ public class Line implements Moveable, Hideable, GuideLine {
 		return end.getX() > start.getX() ? Direction.RIGHT : Direction.LEFT;
 	}
 
+	public double getArrowDirection2() {
+		if (getLinkArrow() == LinkArrow.BACKWARD) {
+			return Math.PI + getArrowDirectionInternal2();
+		}
+		return getArrowDirectionInternal2();
+	}
+
+	private double getArrowDirectionInternal2() {
+		if (isAutolink()) {
+			final double startAngle = dotPath.getStartAngle();
+			return startAngle;
+		}
+		final Point2D start = dotPath.getStartPoint();
+		final Point2D end = dotPath.getEndPoint();
+		final double ang = Math.atan2(end.getX() - start.getX(), end.getY() - start.getY());
+		return ang;
+	}
+
 	private Cluster getCluster2(Bibliotekon bibliotekon, IEntity entityMutable) {
 		for (Cluster cl : bibliotekon.allCluster()) {
 			if (cl.getGroups().contains(entityMutable)) {
@@ -439,7 +457,7 @@ public class Line implements Moveable, Hideable, GuideLine {
 	}
 
 	private UDrawable getExtremity(LinkDecor decor, PointListIterator pointListIterator, final Point2D center,
-			double angle, Cluster cluster, Node nodeContact) {
+			double angle, Cluster cluster, SvekNode nodeContact) {
 		final ExtremityFactory extremityFactory = decor.getExtremityFactory(backgroundColor);
 
 		if (cluster != null) {
@@ -678,7 +696,7 @@ public class Line implements Moveable, Hideable, GuideLine {
 
 		final String comment = link.idCommentForSvg();
 		final String tmp = uniq(ids, comment);
-		todraw.setComment(tmp);
+		todraw.setCommentAndCodeLine(tmp, link.getCodeLine());
 
 		drawRainbow(ug.apply(new UTranslate(x, y)), color, todraw, link.getSupplementaryColors(), stroke);
 
@@ -703,7 +721,7 @@ public class Line implements Moveable, Hideable, GuideLine {
 			final PointAndAngle middle = dotPath.getMiddle();
 			final double angleRad = middle.getAngle();
 			final double angleDeg = -angleRad * 180.0 / Math.PI;
-			final UDrawable mi = linkType.getMiddleDecor().getMiddleFactory(arrowLollipopColor)
+			final UDrawable mi = linkType.getMiddleDecor().getMiddleFactory(arrowLollipopColor, backgroundColor)
 					.createUDrawable(angleDeg - 45);
 			mi.drawU(ug.apply(new UTranslate(x + middle.getX(), y + middle.getY())));
 		}
@@ -852,9 +870,9 @@ public class Line implements Moveable, Hideable, GuideLine {
 		return strategy.getResult() + getDecorDzeta();
 	}
 
-	public void manageCollision(Collection<Node> allNodes) {
+	public void manageCollision(Collection<SvekNode> allNodes) {
 
-		for (Node sh : allNodes) {
+		for (SvekNode sh : allNodes) {
 			final Positionable cl = PositionableUtils.addMargin(sh, 8, 8);
 			if (startTailText != null && startTailLabelXY != null
 					&& PositionableUtils.intersect(cl, startTailLabelXY)) {
@@ -885,7 +903,7 @@ public class Line implements Moveable, Hideable, GuideLine {
 
 	}
 
-	private void avoid(Point2D.Double move, Positionable pos, Node sh) {
+	private void avoid(Point2D.Double move, Positionable pos, SvekNode sh) {
 		final Oscillator oscillator = new Oscillator();
 		final Point2D.Double orig = new Point2D.Double(move.x, move.y);
 		while (cut(pos, sh)) {
@@ -894,7 +912,7 @@ public class Line implements Moveable, Hideable, GuideLine {
 		}
 	}
 
-	private boolean cut(Positionable pos, Node sh) {
+	private boolean cut(Positionable pos, SvekNode sh) {
 		return BezierUtils.intersect(pos, sh) || tooClose(pos);
 	}
 

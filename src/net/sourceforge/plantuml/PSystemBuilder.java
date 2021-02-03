@@ -43,6 +43,7 @@ import net.sourceforge.plantuml.acearth.PSystemXearthFactory;
 import net.sourceforge.plantuml.activitydiagram.ActivityDiagramFactory;
 import net.sourceforge.plantuml.activitydiagram3.ActivityDiagramFactory3;
 import net.sourceforge.plantuml.api.PSystemFactory;
+import net.sourceforge.plantuml.board.BoardDiagramFactory;
 import net.sourceforge.plantuml.bpm.BpmDiagramFactory;
 import net.sourceforge.plantuml.classdiagram.ClassDiagramFactory;
 import net.sourceforge.plantuml.command.regex.RegexConcat;
@@ -68,8 +69,10 @@ import net.sourceforge.plantuml.error.PSystemError;
 import net.sourceforge.plantuml.error.PSystemErrorUtils;
 import net.sourceforge.plantuml.flowdiagram.FlowDiagramFactory;
 import net.sourceforge.plantuml.font.PSystemListFontsFactory;
+import net.sourceforge.plantuml.gitlog.GitDiagramFactory;
 import net.sourceforge.plantuml.help.HelpFactory;
 import net.sourceforge.plantuml.jcckit.PSystemJcckitFactory;
+import net.sourceforge.plantuml.jsondiagram.JsonDiagramFactory;
 import net.sourceforge.plantuml.math.PSystemLatexFactory;
 import net.sourceforge.plantuml.math.PSystemMathFactory;
 import net.sourceforge.plantuml.mindmap.MindMapDiagramFactory;
@@ -78,7 +81,7 @@ import net.sourceforge.plantuml.openiconic.PSystemListOpenIconicFactory;
 import net.sourceforge.plantuml.openiconic.PSystemOpenIconicFactory;
 import net.sourceforge.plantuml.oregon.PSystemOregonFactory;
 import net.sourceforge.plantuml.project.GanttDiagramFactory;
-import net.sourceforge.plantuml.salt.PSystemSaltFactory;
+import net.sourceforge.plantuml.salt.PSystemSaltFactory2;
 import net.sourceforge.plantuml.security.SecurityProfile;
 import net.sourceforge.plantuml.security.SecurityUtils;
 import net.sourceforge.plantuml.sequencediagram.SequenceDiagramFactory;
@@ -94,6 +97,7 @@ import net.sourceforge.plantuml.version.PSystemLicenseFactory;
 import net.sourceforge.plantuml.version.PSystemVersionFactory;
 import net.sourceforge.plantuml.wbs.WBSDiagramFactory;
 import net.sourceforge.plantuml.wire.WireDiagramFactory;
+import net.sourceforge.plantuml.yaml.YamlDiagramFactory;
 
 public class PSystemBuilder {
 
@@ -114,7 +118,7 @@ public class PSystemBuilder {
 					// Dead code : should not append
 					assert false;
 					Log.error("Preprocessor Error: " + s.getPreprocessorError());
-					final ErrorUml err = new ErrorUml(ErrorUmlType.SYNTAX_ERROR, s.getPreprocessorError(), /* cpt */
+					final ErrorUml err = new ErrorUml(ErrorUmlType.SYNTAX_ERROR, s.getPreprocessorError(), 0,
 							s.getLocation());
 					return PSystemErrorUtils.buildV2(umlSource, err, Collections.<String>emptyList(), source);
 				}
@@ -168,8 +172,8 @@ public class PSystemBuilder {
 		factories.add(new PSystemOpenIconicFactory());
 		factories.add(new PSystemListOpenIconicFactory());
 		factories.add(new PSystemListInternalSpritesFactory());
-		factories.add(new PSystemSaltFactory(DiagramType.SALT));
-		factories.add(new PSystemSaltFactory(DiagramType.UML));
+		factories.add(new PSystemSaltFactory2(DiagramType.SALT));
+		factories.add(new PSystemSaltFactory2(DiagramType.UML));
 		factories.add(new PSystemDotFactory(DiagramType.DOT));
 		factories.add(new PSystemDotFactory(DiagramType.UML));
 		factories.add(new NwDiagramFactory());
@@ -211,6 +215,10 @@ public class PSystemBuilder {
 		factories.add(new TimingDiagramFactory());
 		factories.add(new HelpFactory());
 		factories.add(new WireDiagramFactory());
+		factories.add(new JsonDiagramFactory());
+		factories.add(new GitDiagramFactory());
+		factories.add(new BoardDiagramFactory());
+		factories.add(new YamlDiagramFactory());
 		return factories;
 	}
 

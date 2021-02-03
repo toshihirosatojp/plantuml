@@ -40,6 +40,7 @@ import java.util.List;
 
 import net.sourceforge.plantuml.EmbeddedDiagram;
 import net.sourceforge.plantuml.ISkinSimple;
+import net.sourceforge.plantuml.SpriteContainerEmpty;
 import net.sourceforge.plantuml.StringUtils;
 import net.sourceforge.plantuml.creole.CreoleContext;
 import net.sourceforge.plantuml.creole.CreoleMode;
@@ -52,6 +53,9 @@ import net.sourceforge.plantuml.cucadiagram.Display;
 import net.sourceforge.plantuml.cucadiagram.Stereotype;
 import net.sourceforge.plantuml.graphic.FontConfiguration;
 import net.sourceforge.plantuml.graphic.HorizontalAlignment;
+import net.sourceforge.plantuml.ugraphic.UFont;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorException;
+import net.sourceforge.plantuml.ugraphic.color.NoSuchColorRuntimeException;
 
 public class CreoleParser implements SheetBuilder {
 
@@ -75,6 +79,16 @@ public class CreoleParser implements SheetBuilder {
 
 	private Stripe createStripe(String line, CreoleContext context, Stripe lastStripe,
 			FontConfiguration fontConfiguration) {
+		if (lastStripe instanceof StripeCode) {
+			final StripeCode code = (StripeCode) lastStripe;
+			if (code.isTerminated()) {
+				lastStripe = null;
+			} else {
+				final boolean terminated = code.addAndCheckTermination(line);
+				return null;
+			}
+		}
+
 		if (lastStripe instanceof StripeTable && isTableLine(line)) {
 			final StripeTable table = (StripeTable) lastStripe;
 			table.analyzeAndAddLine(line);
@@ -87,12 +101,14 @@ public class CreoleParser implements SheetBuilder {
 			return new StripeTable(fontConfiguration, skinParam, line);
 		} else if (Parser.isTreeStart(line)) {
 			return new StripeTree(fontConfiguration, skinParam, line);
+		} else if (Parser.isCodeStart(line)) {
+			return new StripeCode(fontConfiguration.changeFamily(Parser.MONOSPACED), skinParam, line);
 		}
 		return new CreoleStripeSimpleParser(line, context, fontConfiguration, skinParam, creoleMode)
 				.createStripe(context);
 	}
 
-	private static boolean isTableLine(String line) {
+	public static boolean isTableLine(String line) {
 		return line.matches("^(\\<#\\w+(,#?\\w+)?\\>)?\\|(\\=)?.*\\|$");
 	}
 
@@ -131,5 +147,15 @@ public class CreoleParser implements SheetBuilder {
 			}
 		}
 		return sheet;
+	}
+
+	public static void checkColor(Display result) throws NoSuchColorException {
+		FontConfiguration fc = FontConfiguration.blackBlueTrue(UFont.byDefault(10));
+		try {
+			new CreoleParser(fc, HorizontalAlignment.LEFT, new SpriteContainerEmpty(), CreoleMode.FULL, fc)
+					.createSheet(result);
+		} catch (NoSuchColorRuntimeException e) {
+			throw new NoSuchColorException();
+		}
 	}
 }

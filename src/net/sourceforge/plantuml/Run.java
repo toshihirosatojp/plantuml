@@ -59,9 +59,10 @@ import net.sourceforge.plantuml.classdiagram.ClassDiagramFactory;
 import net.sourceforge.plantuml.code.NoPlantumlCompressionException;
 import net.sourceforge.plantuml.code.Transcoder;
 import net.sourceforge.plantuml.code.TranscoderUtil;
-import net.sourceforge.plantuml.command.UmlDiagramFactory;
+import net.sourceforge.plantuml.command.PSystemCommandFactory;
 import net.sourceforge.plantuml.descdiagram.DescriptionDiagramFactory;
 import net.sourceforge.plantuml.ftp.FtpServer;
+import net.sourceforge.plantuml.picoweb.PicoWebServer;
 import net.sourceforge.plantuml.png.MetadataTag;
 import net.sourceforge.plantuml.preproc.Stdlib;
 import net.sourceforge.plantuml.security.ImageIO;
@@ -144,6 +145,11 @@ public class Run {
 			return;
 		}
 
+		if (option.getPicowebPort() != -1) {
+			goPicoweb(option);
+			return;
+		}
+
 		forceOpenJdkResourceLoad();
 		if (option.getPreprocessorOutputMode() == OptionPreprocOutputMode.CYPHER) {
 			cypher = new LanguageDescriptor().getCypher();
@@ -199,12 +205,8 @@ public class Run {
 		}
 
 		if (OptionFlags.getInstance().isGui() == false) {
-			if (error.hasError()) {
-				Log.error("Some diagram description contains errors");
-				System.exit(error.getExitCode());
-			}
-			if (error.isNoData()) {
-				Log.error("No diagram found");
+			if (error.hasError() || error.isNoData()) {
+				option.getStdrpt().finalMessage(error);
 				System.exit(error.getExitCode());
 			}
 
@@ -331,6 +333,12 @@ public class Run {
 		ftpServer.go();
 	}
 
+	private static void goPicoweb(Option option) throws IOException {
+		final int picoWebport = option.getPicowebPort();
+		System.err.println("webPort=" + picoWebport);
+		PicoWebServer.startServer(picoWebport);
+	}
+
 	public static void printFonts() {
 		final Font fonts[] = GraphicsEnvironment.getLocalGraphicsEnvironment().getAllFonts();
 		for (Font f : fonts) {
@@ -353,7 +361,7 @@ public class Run {
 		// printPattern(new ObjectDiagramFactory(null));
 	}
 
-	private static void printPattern(UmlDiagramFactory factory) {
+	private static void printPattern(PSystemCommandFactory factory) {
 		System.out.println();
 		System.out.println(factory.getClass().getSimpleName().replaceAll("Factory", ""));
 		final List<String> descriptions = factory.getDescription();
@@ -539,7 +547,7 @@ public class Run {
 			rpt.printInfo(System.err, s.getDiagram());
 		}
 
-		hasErrors(f, result, error);
+		hasErrors(f, result, error, rpt);
 	}
 
 	private static void extractPreproc(Option option, final ISourceFileReader sourceFileReader) throws IOException {
@@ -570,15 +578,16 @@ public class Run {
 		}
 	}
 
-	private static void hasErrors(File f, final List<GeneratedImage> list, ErrorStatus error) throws IOException {
+	private static void hasErrors(File file, final List<GeneratedImage> list, ErrorStatus error, Stdrpt stdrpt)
+			throws IOException {
 		if (list.size() == 0) {
 			// error.goNoData();
 			return;
 		}
-		for (GeneratedImage i : list) {
-			final int lineError = i.lineErrorRaw();
+		for (GeneratedImage image : list) {
+			final int lineError = image.lineErrorRaw();
 			if (lineError != -1) {
-				Log.error("Error line " + lineError + " in file: " + f.getPath());
+				stdrpt.errorLine(lineError, file);
 				error.goWithError();
 				return;
 			}

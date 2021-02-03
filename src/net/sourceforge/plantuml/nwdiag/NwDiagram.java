@@ -55,6 +55,7 @@ import net.sourceforge.plantuml.SkinParam;
 import net.sourceforge.plantuml.SpriteContainerEmpty;
 import net.sourceforge.plantuml.UmlDiagram;
 import net.sourceforge.plantuml.UmlDiagramType;
+import net.sourceforge.plantuml.UseStyle;
 import net.sourceforge.plantuml.command.CommandExecutionResult;
 import net.sourceforge.plantuml.core.DiagramDescription;
 import net.sourceforge.plantuml.core.ImageData;
@@ -69,6 +70,7 @@ import net.sourceforge.plantuml.graphic.UDrawable;
 import net.sourceforge.plantuml.style.ClockwiseTopRightBottomLeft;
 import net.sourceforge.plantuml.svek.TextBlockBackcolored;
 import net.sourceforge.plantuml.ugraphic.ImageBuilder;
+import net.sourceforge.plantuml.ugraphic.ImageParameter;
 import net.sourceforge.plantuml.ugraphic.MinMax;
 import net.sourceforge.plantuml.ugraphic.UEmpty;
 import net.sourceforge.plantuml.ugraphic.UFont;
@@ -81,18 +83,17 @@ import net.sourceforge.plantuml.ugraphic.color.HColorUtils;
 public class NwDiagram extends UmlDiagram {
 
 	private boolean initDone;
-	private final Map<String, DiagElement> elements = new LinkedHashMap<String, DiagElement>();
+	private final Map<String, Square> squares = new LinkedHashMap<String, Square>();
 	private final List<Network> networks = new ArrayList<Network>();
-	private final List<DiagGroup> groups = new ArrayList<DiagGroup>();
-	private DiagGroup currentGroup = null;
+	private final List<NwGroup> groups = new ArrayList<NwGroup>();
+	private NwGroup currentGroup = null;
 
 	public DiagramDescription getDescription() {
 		return new DiagramDescription("(Nwdiag)");
 	}
 
-	@Override
-	public UmlDiagramType getUmlDiagramType() {
-		return UmlDiagramType.NWDIAG;
+	public NwDiagram() {
+		super(UmlDiagramType.NWDIAG);
 	}
 
 	public void init() {
@@ -110,7 +111,7 @@ public class NwDiagram extends UmlDiagram {
 		if (initDone == false) {
 			return error();
 		}
-		currentGroup = new DiagGroup(name, currentNetwork());
+		currentGroup = new NwGroup(name, currentNetwork());
 		groups.add(currentGroup);
 		return CommandExecutionResult.ok();
 	}
@@ -119,9 +120,52 @@ public class NwDiagram extends UmlDiagram {
 		if (initDone == false) {
 			return error();
 		}
-		final Network network = new Network(name);
-		networks.add(network);
+		createNetwork(name);
 		return CommandExecutionResult.ok();
+	}
+
+	private Network createNetwork(String name) {
+		final Network network = new Network(name, networks.size());
+		networks.add(network);
+		return network;
+	}
+
+	public CommandExecutionResult link(String name1, String name2) {
+		if (initDone == false) {
+			return error();
+		}
+		if (currentNetwork() == null) {
+			createNetwork(name1);
+			addSquare(null, name2, toSet(null));
+			return CommandExecutionResult.ok();
+		} else {
+			final Square already = squares.get(name1);
+			final Network network1 = createNetwork("");
+			network1.goInvisible();
+			if (already != null) {
+				currentNetwork().addSquare(already, toSet(null));
+			}
+			final Square added = addSquare(null, name2, toSet(null));
+			added.sameColThan(already);
+			return CommandExecutionResult.ok();
+		}
+	}
+
+	private Square addSquare(Square element, String name, Map<String, String> props) {
+		if (element == null) {
+			element = new Square(name, currentNetwork(), this.getSkinParam());
+			squares.put(name, element);
+		}
+		currentNetwork().addSquare(element, props);
+		final String description = props.get("description");
+		if (description != null) {
+			element.setDescription(description);
+		}
+		final String shape = props.get("shape");
+		if (shape != null) {
+			element.setShape(shape);
+		}
+		return element;
 	}
 
 	public CommandExecutionResult endSomething() {
@@ -139,22 +183,16 @@ public class NwDiagram extends UmlDiagram {
 		if (currentGroup != null) {
 			currentGroup.addElement(name);
 		}
-		if (currentNetwork() != null) {
-			DiagElement element = elements.get(name);
-			if (element == null) {
-				element = new DiagElement(name, currentNetwork());
-				elements.put(name, element);
+		if (currentNetwork() == null) {
+			if (currentGroup == null) {
+				final Network network1 = createNetwork("");
+				network1.goInvisible();
+				final Square first = addSquare(null, name, toSet(definition));
+				first.doNotHaveItsOwnColumn();
 			}
-			final Map<String, String> props = toSet(definition);
-			final String description = props.get("description");
-			if (description != null) {
-				element.setDescription(description);
-			}
-			final String shape = props.get("shape");
-			if (shape != null) {
-				element.setShape(shape);
-			}
-			currentNetwork().addElement(element, props);
+		} else {
+			final Square element = squares.get(name);
+			addSquare(element, name, toSet(definition));
 		}
 		return CommandExecutionResult.ok();
 	}
@@ -188,17 +226,20 @@ public class NwDiagram extends UmlDiagram {
 		final ISkinParam skinParam = getSkinParam();
 		final int margin1;
 		final int margin2;
-		if (SkinParam.USE_STYLES()) {
+		if (UseStyle.useBetaStyle()) {
 			margin1 = SkinParam.zeroMargin(0);
 			margin2 = SkinParam.zeroMargin(0);
 		} else {
 			margin1 = 0;
 			margin2 = 0;
 		}
-		final ImageBuilder imageBuilder = ImageBuilder.buildB(new ColorMapperIdentity(), false,
-				ClockwiseTopRightBottomLeft.margin1margin2(margin1, margin2), null, "", "", dpiFactor, null);
+		final ClockwiseTopRightBottomLeft margins = ClockwiseTopRightBottomLeft.margin1margin2(margin1, margin2);
+		final ImageParameter imageParameter = new ImageParameter(new ColorMapperIdentity(), false, null, dpiFactor, "",
+				"", margins, null);
+		final ImageBuilder imageBuilder = ImageBuilder.build(imageParameter);
 		TextBlock result = getTextBlock();
-		result = new AnnotatedWorker(this, skinParam, fileFormatOption.getDefaultStringBounder()).addAdd(result);
+		result = new AnnotatedWorker(this, skinParam, fileFormatOption.getDefaultStringBounder(getSkinParam()))
+				.addAdd(result);
 		imageBuilder.setUDrawable(result);
 
 		return imageBuilder.writeImageTOBEMOVED(fileFormatOption, 0, os);
@@ -256,22 +297,7 @@ public class NwDiagram extends UmlDiagram {
 		ug = ug.apply(new UTranslate(margin, margin));
 
 		final StringBounder stringBounder = ug.getStringBounder();
-		final GridTextBlockDecorated grid = new GridTextBlockDecorated(networks.size(), elements.size(), groups);
-
-		for (int i = 0; i < networks.size(); i++) {
-			final Network current = networks.get(i);
-			final Network next = i + 1 < networks.size() ? networks.get(i + 1) : null;
-			int j = 0;
-			for (Map.Entry<String, DiagElement> ent : elements.entrySet()) {
-				final DiagElement element = ent.getValue();
-				if (element.getMainNetwork() == current && current.constainsLocally(ent.getKey())) {
-					final String ad1 = current.getAdress(element);
-					final String ad2 = next == null ? null : next.getAdress(element);
-					grid.add(i, j, element.asTextBlock(ad1, ad2));
-				}
-				j++;
-			}
-		}
+		final GridTextBlockDecorated grid = buildGrid();
 
 		double deltaX = 0;
 		double deltaY = 0;
@@ -306,6 +332,47 @@ public class NwDiagram extends UmlDiagram {
 
 	}
 
+	private Map<Network, String> getLinks(Square element) {
+		final Map<Network, String> result = new LinkedHashMap<Network, String>();
+		for (Network network : networks) {
+			final String s = network.getAdress(element);
+			if (s != null) {
+				result.put(network, s);
+			}
+		}
+		return result;
+	}
+
+	private GridTextBlockDecorated buildGrid() {
+		final GridTextBlockDecorated grid = new GridTextBlockDecorated(networks.size(), squares.size(), groups,
+				networks, getSkinParam());
+
+		for (int i = 0; i < networks.size(); i++) {
+			final Network current = networks.get(i);
+			int j = 0;
+			for (Map.Entry<String, Square> ent : squares.entrySet()) {
+				final Square square = ent.getValue();
+				if (square.getMainNetwork() == current) {
+					final Map<Network, String> conns = getLinks(square);
+					final Square sameCol = square.getSameCol();
+					if (sameCol != null) {
+						square.setNumCol(sameCol.getNumCol());
+					} else {
+						square.setNumCol(j);
+					}
+					grid.add(i, square.getNumCol(), square.asTextBlock(conns, networks));
+				}
+				if (square.hasItsOwnColumn()) {
+					j++;
+				}
+			}
+		}
+
+		grid.checkGroups();
+
+		return grid;
+	}
+
 	public CommandExecutionResult setProperty(String property, String value) {
 		if (initDone == false) {
 			return error();
@@ -313,20 +380,21 @@ public class NwDiagram extends UmlDiagram {
 		if ("address".equalsIgnoreCase(property) && currentNetwork() != null) {
 			currentNetwork().setOwnAdress(value);
 		}
+		if ("width".equalsIgnoreCase(property) && currentNetwork() != null) {
+			currentNetwork().setFullWidth("full".equalsIgnoreCase(value));
+		}
 		if ("color".equalsIgnoreCase(property)) {
-			final HColor color = GridTextBlockDecorated.colors.getColorIfValid(value);
+			final HColor color = value == null ? null : NwGroup.colors.getColorOrWhite(value);
 			if (currentGroup != null) {
 				currentGroup.setColor(color);
 			} else if (currentNetwork() != null) {
 				currentNetwork().setColor(color);
 			}
 		}
-		return CommandExecutionResult.ok();
-	}
-
-	public CommandExecutionResult link() {
-		if (initDone == false) {
-			return error();
+		if ("description".equalsIgnoreCase(property)) {
+			if (currentGroup != null) {
+				currentGroup.setDescription(value);
+			}
 		}
 		return CommandExecutionResult.ok();
 	}
